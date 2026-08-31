@@ -282,13 +282,7 @@ function wrapHtmlBlockSelection(
 
     const selectedLines: string[] = [];
     for (let lineNumber = lines.startLine; lineNumber <= lines.endLine; lineNumber++) {
-        const line = model.getLineContent(lineNumber);
-        const insertColumn = line.trim().length === 0
-            ? null
-            : getCommentPrefixInsertColumn(line, 0);
-        selectedLines.push(insertColumn === null
-            ? line
-            : line.slice(0, insertColumn - 1) + "'" + line.slice(insertColumn - 1));
+        selectedLines.push(model.getLineContent(lineNumber));
     }
 
     const firstLine = model.getLineContent(lines.startLine);
