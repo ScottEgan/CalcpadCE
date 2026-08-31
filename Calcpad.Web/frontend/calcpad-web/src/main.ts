@@ -25,6 +25,7 @@ import {
     previewSizeLimitChars,
     previewLimitNoticeHtml,
     formatSize,
+    getCommentPrefixInsertColumn,
     type InlineImageBudget,
 } from 'calcpad-frontend';
 import { registerCalcpadLanguage, registerCalcpadTheme, remeasureEditorFontsWhenReady, resolveEditorFontFamily } from './editor/setup';
@@ -129,6 +130,205 @@ a = 3
 b = 4
 c = √(a² + b²)
 `;
+}
+
+type HtmlSelectionInsert =
+    | { kind: 'line-block'; prefix: string; suffix: string }
+    | { kind: 'inline'; prefix: string; suffix: string }
+    | { kind: 'block'; before: string[]; after: string[] };
+
+const HTML_LINE_BLOCK_TEMPLATES = new Map<string, HtmlSelectionInsert>([
+    ["'<h3>text</h3>", { kind: 'line-block', prefix: '<h3>', suffix: '</h3>' }],
+    ["'<h4>text</h4>", { kind: 'line-block', prefix: '<h4>', suffix: '</h4>' }],
+    ["'<h5>text</h5>", { kind: 'line-block', prefix: '<h5>', suffix: '</h5>' }],
+    ["'<h6>text</h6>", { kind: 'line-block', prefix: '<h6>', suffix: '</h6>' }],
+    ["'<p>text</p>", { kind: 'line-block', prefix: '<p>', suffix: '</p>' }],
+]);
+
+const HTML_INLINE_TEMPLATES = new Map<string, HtmlSelectionInsert>([
+    ["'<strong>text</strong>", { kind: 'inline', prefix: '<strong>', suffix: '</strong>' }],
+    ["'<em>text</em>", { kind: 'inline', prefix: '<em>', suffix: '</em>' }],
+    ["'<ins>text</ins>", { kind: 'inline', prefix: '<ins>', suffix: '</ins>' }],
+    ["'<del>text</del>", { kind: 'inline', prefix: '<del>', suffix: '</del>' }],
+    ["'<sub>text</sub>", { kind: 'inline', prefix: '<sub>', suffix: '</sub>' }],
+    ["'<sup>text</sup>", { kind: 'inline', prefix: '<sup>', suffix: '</sup>' }],
+    ["'<span>text</span>", { kind: 'inline', prefix: '<span>', suffix: '</span>' }],
+    ["'<span class=\"err\">text</span>", { kind: 'inline', prefix: '<span class="err">', suffix: '</span>' }],
+    ["'<span class=\"ok\">text</span>", { kind: 'inline', prefix: '<span class="ok">', suffix: '</span>' }],
+]);
+
+const HTML_FOLD_TEMPLATE = "'<div class=\"fold\">\n'<h4>Heading</h4>\n'Folded content\n'</div>";
+const HTML_UL_TEMPLATE = "'<ul>\n'<li>Item 1</li>\n'<li>Item 2</li>\n'<li>Item 3</li>\n'</ul>";
+const HTML_OL_TEMPLATE = "'<ol>\n'<li>Item 1</li>\n'<li>Item 2</li>\n'<li>Item 3</li>\n'</ol>";
+const HTML_TABLE_TEMPLATE = [
+    '',
+    "'<table class=\"bordered\">",
+    "'<thead>",
+    "'<tr><th>col 1</th><th>col 2</th></tr>",
+    "'</thead>",
+    "'<tbody>",
+    "'<tr><td>'11'</td><td>'12'</td></tr>",
+    "'<tr><td>'21'</td><td>'22'</td></tr>",
+    "'</tbody>",
+    "'</table>",
+    '',
+].join('\n');
+
+const HTML_BLOCK_TEMPLATES = new Map<string, HtmlSelectionInsert>([
+    ["'<div>text</div>", { kind: 'block', before: ["'<div>"], after: ["'</div>"] }],
+    [HTML_FOLD_TEMPLATE, {
+        kind: 'block',
+        before: ["'<div class=\"fold\">", "'<h4>Heading</h4>"],
+        after: ["'</div>"],
+    }],
+    [HTML_UL_TEMPLATE, { kind: 'block', before: ["'<ul>"], after: ["'</ul>"] }],
+    [HTML_OL_TEMPLATE, { kind: 'block', before: ["'<ol>"], after: ["'</ol>"] }],
+    [HTML_TABLE_TEMPLATE, {
+        kind: 'block',
+        before: ['', "'<table class=\"bordered\">", "'<thead>", "'<tr><th>col 1</th><th>col 2</th></tr>", "'</thead>", "'<tbody>"],
+        after: ["'</tbody>", "'</table>", ''],
+    }],
+]);
+
+function resolveHtmlSelectionInsert(text: string): HtmlSelectionInsert | null {
+    return HTML_LINE_BLOCK_TEMPLATES.get(text)
+        ?? HTML_INLINE_TEMPLATES.get(text)
+        ?? HTML_BLOCK_TEMPLATES.get(text)
+        ?? null;
+}
+
+function getSelectedLineRange(selection: monaco.Selection): { startLine: number; endLine: number } | null {
+    const startLine = selection.startLineNumber;
+    let endLine = selection.endLineNumber;
+    if (selection.endColumn === 1 && endLine > startLine) endLine--;
+    return endLine < startLine ? null : { startLine, endLine };
+}
+
+function selectionCoversLineContent(line: string, startColumn: number, endColumn: number): boolean {
+    const before = line.slice(0, startColumn - 1);
+    const after = line.slice(endColumn - 1);
+    return /^[ \t]*'?$/.test(before) && after.trim().length === 0;
+}
+
+function wrapHtmlTextSelection(
+    editor: monaco.editor.IStandaloneCodeEditor,
+    selection: monaco.Selection,
+    insert: Extract<HtmlSelectionInsert, { kind: 'line-block' | 'inline' }>,
+): void {
+    const model = editor.getModel();
+    const lines = getSelectedLineRange(selection);
+    if (!model || !lines) return;
+
+    const isMultiline = lines.endLine > lines.startLine;
+    const edits: monaco.editor.IIdentifiedSingleEditOperation[] = [];
+
+    for (let lineNumber = lines.startLine; lineNumber <= lines.endLine; lineNumber++) {
+        const line = model.getLineContent(lineNumber);
+        const startColumn = lineNumber === selection.startLineNumber ? selection.startColumn : 1;
+        const endColumn = lineNumber === selection.endLineNumber
+            ? selection.endColumn
+            : line.length + 1;
+        if (startColumn >= endColumn) continue;
+
+        const selectedText = line.slice(startColumn - 1, endColumn - 1);
+        const indentLength = line.match(/^[ \t]*/)?.[0].length ?? 0;
+        const apostropheColumn = indentLength + 1;
+        const containsLeadingApostrophe = line[apostropheColumn - 1] === "'"
+            && startColumn <= apostropheColumn
+            && apostropheColumn < endColumn;
+        const insertColumn = containsLeadingApostrophe
+            ? null
+            : getCommentPrefixInsertColumn(line, startColumn - 1);
+        const insertInsideSelection = insertColumn !== null
+            && startColumn <= insertColumn
+            && insertColumn < endColumn;
+        const syntaxColumn = containsLeadingApostrophe ? apostropheColumn : insertInsideSelection ? insertColumn : null;
+        const syntaxOffset = syntaxColumn === null ? 0 : syntaxColumn - startColumn;
+        const beforeSyntax = syntaxColumn === null ? '' : selectedText.slice(0, syntaxOffset);
+        const content = syntaxColumn === null ? selectedText : selectedText.slice(syntaxOffset + (containsLeadingApostrophe ? 1 : 0));
+        if (content.trim().length === 0) continue;
+
+        const useParagraph = insert.kind === 'inline'
+            && (isMultiline || selectionCoversLineContent(line, startColumn, endColumn));
+        const tagged = `${insert.prefix}${content}${insert.suffix}`;
+        const wrapped = useParagraph ? `<p>${tagged}</p>` : tagged;
+        const replacement = syntaxColumn === null ? wrapped : `${beforeSyntax}'${wrapped}`;
+
+        edits.push({
+            range: new monaco.Range(lineNumber, startColumn, lineNumber, endColumn),
+            text: replacement,
+            forceMoveMarkers: true,
+        });
+        if (insertColumn !== null && !insertInsideSelection) {
+            edits.push({
+                range: new monaco.Range(lineNumber, insertColumn, lineNumber, insertColumn),
+                text: "'",
+                forceMoveMarkers: true,
+            });
+        }
+    }
+
+    if (edits.length > 0) editor.executeEdits('calcpad-insert-html-selection', edits);
+}
+
+function wrapHtmlBlockSelection(
+    editor: monaco.editor.IStandaloneCodeEditor,
+    selection: monaco.Selection,
+    insert: Extract<HtmlSelectionInsert, { kind: 'block' }>,
+): void {
+    const model = editor.getModel();
+    const lines = getSelectedLineRange(selection);
+    if (!model || !lines) return;
+
+    const selectedLines: string[] = [];
+    for (let lineNumber = lines.startLine; lineNumber <= lines.endLine; lineNumber++) {
+        const line = model.getLineContent(lineNumber);
+        const insertColumn = line.trim().length === 0
+            ? null
+            : getCommentPrefixInsertColumn(line, 0);
+        selectedLines.push(insertColumn === null
+            ? line
+            : line.slice(0, insertColumn - 1) + "'" + line.slice(insertColumn - 1));
+    }
+
+    const firstLine = model.getLineContent(lines.startLine);
+    const indentation = firstLine.match(/^[ \t]*/)?.[0] ?? '';
+    const alignWrapperLine = (line: string) => line.length === 0 ? '' : indentation + line;
+    const before = insert.before.map(alignWrapperLine);
+    const after = insert.after.map(alignWrapperLine);
+    const replacementLines = [...before, ...selectedLines, ...after];
+    const range = new monaco.Range(
+        lines.startLine,
+        1,
+        lines.endLine,
+        model.getLineLength(lines.endLine) + 1,
+    );
+    const contentStartLine = lines.startLine + before.length;
+    const contentEndLine = contentStartLine + selectedLines.length - 1;
+    const endSelections = [new monaco.Selection(
+        contentStartLine,
+        1,
+        contentEndLine,
+        selectedLines[selectedLines.length - 1].length + 1,
+    )];
+
+    editor.executeEdits('calcpad-insert-html-selection', [{
+        range,
+        text: replacementLines.join(model.getEOL()),
+        forceMoveMarkers: true,
+    }], endSelections);
+}
+
+function wrapHtmlSelection(
+    editor: monaco.editor.IStandaloneCodeEditor,
+    selection: monaco.Selection,
+    insert: HtmlSelectionInsert,
+): void {
+    if (insert.kind === 'block') {
+        wrapHtmlBlockSelection(editor, selection, insert);
+    } else {
+        wrapHtmlTextSelection(editor, selection, insert);
+    }
 }
 
 /**
@@ -1251,11 +1451,18 @@ async function bootstrap(): Promise<void> {
     activeBridge.onInsertText = (text: string) => {
         const selection = editor.getSelection();
         if (selection) {
-            editor.executeEdits('calcpad-insert', [{
-                range: selection,
-                text,
-                forceMoveMarkers: true,
-            }]);
+            const htmlInsert = selection.isEmpty()
+                ? null
+                : resolveHtmlSelectionInsert(text);
+            if (htmlInsert) {
+                wrapHtmlSelection(editor, selection, htmlInsert);
+            } else {
+                editor.executeEdits('calcpad-insert', [{
+                    range: selection,
+                    text,
+                    forceMoveMarkers: true,
+                }]);
+            }
         }
         editor.focus();
     };
