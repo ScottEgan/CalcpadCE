@@ -8,7 +8,8 @@
 
 param(
     [string]$Rid = 'win-x64',
-    [string]$Target = 'x86_64-pc-windows-msvc'
+    [string]$Target = 'x86_64-pc-windows-msvc',
+    [string]$Bundles = 'msi,nsis'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,7 +34,17 @@ Write-Host ">> Sidecar staged at $destExe"
 
 Push-Location $ScriptDir
 try {
-    npx tauri build --config src-tauri/tauri.windows.conf.json --target $Target
+    $TauriArgs = @(
+        'tauri', 'build',
+        '--config', 'src-tauri/tauri.windows.conf.json',
+        '--target', $Target,
+        '--bundles', $Bundles
+    )
+    if (-not $env:CALCPAD_SIGN_THUMBPRINT) {
+        $TauriArgs += '--no-sign'
+    }
+    & npx @TauriArgs
+    if ($LASTEXITCODE -ne 0) { throw "Tauri build failed ($LASTEXITCODE)" }
 }
 finally {
     Pop-Location

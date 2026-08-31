@@ -19,7 +19,8 @@
     },
     "windows": {
       "wix": {
-        "language": "en-US"
+        "language": "en-US",
+        "version": "8.0.0.1"
       },
       "nsis": {
         "installMode": "perMachine"
@@ -28,8 +29,11 @@
         "cmd": "powershell",
         "args": [
           "-NoProfile",
-          "-Command",
-          "if ($env:CALCPAD_SIGN_THUMBPRINT) { signtool sign /sha1 $env:CALCPAD_SIGN_THUMBPRINT /fd sha256 /tr http://timestamp.digicert.com /td sha256 '{{ %1 }}' }"
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "sign-windows.ps1",
+          "%1"
         ]
       }
     }
