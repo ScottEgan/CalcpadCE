@@ -200,12 +200,6 @@ function getSelectedLineRange(selection: monaco.Selection): { startLine: number;
     return endLine < startLine ? null : { startLine, endLine };
 }
 
-function selectionCoversLineContent(line: string, startColumn: number, endColumn: number): boolean {
-    const before = line.slice(0, startColumn - 1);
-    const after = line.slice(endColumn - 1);
-    return /^[ \t]*'?$/.test(before) && after.trim().length === 0;
-}
-
 function wrapHtmlTextSelection(
     editor: monaco.editor.IStandaloneCodeEditor,
     selection: monaco.Selection,
@@ -215,7 +209,6 @@ function wrapHtmlTextSelection(
     const lines = getSelectedLineRange(selection);
     if (!model || !lines) return;
 
-    const isMultiline = lines.endLine > lines.startLine;
     const edits: monaco.editor.IIdentifiedSingleEditOperation[] = [];
 
     for (let lineNumber = lines.startLine; lineNumber <= lines.endLine; lineNumber++) {
@@ -244,11 +237,8 @@ function wrapHtmlTextSelection(
         const content = syntaxColumn === null ? selectedText : selectedText.slice(syntaxOffset + (containsLeadingApostrophe ? 1 : 0));
         if (content.trim().length === 0) continue;
 
-        const useParagraph = insert.kind === 'inline'
-            && (isMultiline || selectionCoversLineContent(line, startColumn, endColumn));
         const tagged = `${insert.prefix}${content}${insert.suffix}`;
-        const wrapped = useParagraph ? `<p>${tagged}</p>` : tagged;
-        const replacement = syntaxColumn === null ? wrapped : `${beforeSyntax}'${wrapped}`;
+        const replacement = syntaxColumn === null ? tagged : `${beforeSyntax}'${tagged}`;
 
         edits.push({
             range: new monaco.Range(lineNumber, startColumn, lineNumber, endColumn),
