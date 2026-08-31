@@ -126,7 +126,7 @@ namespace Calcpad.Highlighter.Snippets.Data
             new SnippetItem
             {
                 Insert = "'<div style=\"margin-left: 20px;\">text</div>",
-                Description = "Generic div container",
+                Description = "Indented div container",
                 Category = "HTML"
             },
             new SnippetItem
