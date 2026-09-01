@@ -172,6 +172,11 @@ const HTML_TABLE_TEMPLATE = [
 
 const HTML_BLOCK_TEMPLATES = new Map<string, HtmlSelectionInsert>([
     ["'<div>text</div>", { kind: 'block', before: ["'<div>"], after: ["'</div>"] }],
+    ["'<div style=\"margin-left: 20px;\">text</div>", {
+        kind: 'block',
+        before: ["'<div style=\"margin-left: 20px;\">"],
+        after: ["'</div>"]
+    }],
     [HTML_FOLD_TEMPLATE, {
         kind: 'block',
         before: ["'<div class=\"fold\">", "'<h4>Heading</h4>"],
