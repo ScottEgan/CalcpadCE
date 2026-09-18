@@ -123,11 +123,10 @@ namespace Calcpad.Tests.Highlighter
         [InlineData("#UI k = 2*E")]
         [InlineData("#UI k = E")]
         [InlineData("#UI k = 1 + 2")]
-        [InlineData("#UI v = [1; 2*E]")]
         [InlineData("#UI Z = 2*vector(3)")]
-        [InlineData("#UI G = matrix(2; 2) + 1")]
+        [InlineData("#UI {\"type\": \"entry\"} k = sin(2)")]
         public void AssignedExpression_IsReported(string source) =>
-            Assert.Contains(Messages(source), m => m.Contains("do not support expressions"));
+            Assert.Contains(Messages(source), m => m.Contains("does not support expressions"));
 
         [Theory]
         [InlineData("#UI L = 10m")]
@@ -145,14 +144,57 @@ namespace Calcpad.Tests.Highlighter
         [InlineData("#UI G = matrix(r; c)")]
         [InlineData("#UI G = matrix(len(x); len(y))")]
         [InlineData("#UI '2&middot;<i>r</i> ='d = 1")]
+        // A grid replaces its whole right hand side when edited, so anything may seed it.
+        [InlineData("#UI v = [1; 2*E]")]
+        [InlineData("#UI G = matrix(2; 2) + 1")]
+        // So does any control that allows expressions.
+        [InlineData("#UI {\"allowExpression\": true} k = 1 + 2")]
+        [InlineData("#UI {\"allowExpression\": true} Z = 2*vector(3)")]
         public void AssignedValue_IsAccepted(string source) =>
             Assert.Empty(Messages(source));
 
         [Theory]
-        [InlineData("#UI {\"rows\": -1} a = 1", "'rows' must not be negative")]
-        [InlineData("#UI {\"columns\": -2} a = 1", "'columns' must not be negative")]
+        [InlineData("#UI {\"rows\": -1} a = [1; 2]", "'rows' must not be negative")]
+        [InlineData("#UI {\"columns\": -2} a = [1; 2]", "'columns' must not be negative")]
         public void NegativeGridSize_IsReported(string source, string expected) =>
             Assert.Contains(expected, Assert.Single(Messages(source)));
+
+        [Theory]
+        [InlineData("#UI {\"type\": \"datagrid\"} x = 5", "'datagrid' requires a vector or matrix")]
+        [InlineData("#UI {\"type\": \"datagrid\"} x = 5m", "'datagrid' requires a vector or matrix")]
+        [InlineData("#UI {\"type\": \"entry\"} v = [1; 2]", "'entry' cannot hold a vector or matrix")]
+        [InlineData("#UI {\"type\": \"checkbox\"} f = matrix(2; 2)", "'checkbox' cannot hold a vector or matrix")]
+        public void DeclaredTypeAgainstTheValue_IsReported(string source, string expected) =>
+            Assert.Contains(expected, Assert.Single(Messages(source)));
+
+        [Theory]
+        [InlineData("#UI {\"type\": \"datagrid\"} M = 2*vector(3)")]
+        [InlineData("#UI {\"type\": \"datagrid\"} M = A")]
+        [InlineData("#UI {\"type\": \"entry\"} x = 5m")]
+        [InlineData("#UI {\"type\": \"entry\", \"allowExpression\": true} v = [1; 2]")]
+        public void DeclaredTypeAgainstTheValue_IsNotReportedWhenTheValueCanBeIt(string source) =>
+            Assert.Empty(Messages(source));
+
+        [Theory]
+        // Declared on another type.
+        [InlineData("#UI {\"type\": \"entry\", \"width\": 300} x = 1", "'width' only applies to a datagrid")]
+        [InlineData("#UI {\"type\": \"checkbox\", \"rowHeaderWidth\": 40} x = 1", "'rowHeaderWidth' only applies to a datagrid")]
+        [InlineData("#UI {\"type\": \"dropdown\", \"keys\": [\"A\"], \"values\": [\"1\"], \"columnWidths\": [2, 1]} x = 1",
+            "'columnWidths' only applies to a datagrid")]
+        // Or on a right hand side that is not a grid.
+        [InlineData("#UI {\"width\": \"100%\"} x = 1", "'width' only applies to a datagrid")]
+        [InlineData("#UI {\"rowHeaders\": [\"r1\"]} x = 1", "'rowHeaders' only applies to a datagrid")]
+        [InlineData("#UI {\"rows\": 2} x = 1", "'rows' only applies to a datagrid")]
+        public void GridPropertyOnAnotherControl_IsReported(string source, string expected) =>
+            Assert.Contains(expected, Assert.Single(Messages(source)));
+
+        [Theory]
+        [InlineData("#UI {\"type\": \"datagrid\", \"width\": 300, \"rowHeaderWidth\": 40} M = matrix(2; 2)")]
+        // The type is auto-detected from the right hand side.
+        [InlineData("#UI {\"width\": 300, \"columnWidths\": [2, 1]} T = [1; 2]")]
+        [InlineData("#UI {\"rows\": 2, \"columns\": 2} M = matrix(2; 2)")]
+        public void GridPropertyOnAGrid_IsAccepted(string source) =>
+            Assert.Empty(Messages(source));
 
         [Theory]
         [InlineData("#UI {\"columns\": 2, \"columnHeaders\": [\"a\", \"b\", \"c\"]} T = [1; 2]", "3 entries but the grid has 2 columns")]
@@ -218,5 +260,41 @@ namespace Calcpad.Tests.Highlighter
         [Fact]
         public void UiIsARecognizedKeyword() =>
             Assert.DoesNotContain(Lint("#UI L = 10m\nL").Diagnostics, d => d.Code == "CPD-3403");
+
+        /// <summary>
+        /// The block shares the SettingsJson token with #settings so both colour the same, but
+        /// #UI's ends at the closing brace rather than at the end of the line.
+        /// </summary>
+        [Theory]
+        [InlineData("#UI {\"type\": \"entry\"} L = 10m", "{\"type\": \"entry\"}")]
+        [InlineData("#ui {\"style\": \"highlight\"} depth = 2m", "{\"style\": \"highlight\"}")]
+        [InlineData("#UI {\"type\": \"datagrid\", \"columnHeaders\": [\"a\", \"b\"]} T = [1; 2 | 3; 4]",
+            "{\"type\": \"datagrid\", \"columnHeaders\": [\"a\", \"b\"]}")]
+        public void JsonBlock_IsASingleSettingsJsonToken(string source, string json)
+        {
+            var tokens = new CalcpadTokenizer().Tokenize(source).Tokens;
+            var token = Assert.Single(tokens, t => t.Type == TokenType.SettingsJson);
+            Assert.Equal(json, token.Text);
+        }
+
+        [Fact]
+        public void WithoutAJsonBlock_NoSettingsJsonToken() =>
+            Assert.DoesNotContain(new CalcpadTokenizer().Tokenize("#UI L = 10m").Tokens,
+                t => t.Type == TokenType.SettingsJson);
+
+        [Fact]
+        public void AfterTheJsonBlock_TheMatrixStillTokenizes()
+        {
+            var tokens = new CalcpadTokenizer().Tokenize(
+                "#UI {\"type\": \"datagrid\"} T = [1; 2 | 3; 4]").Tokens;
+            Assert.Contains(tokens, t => t.Type == TokenType.Variable && t.Text == "T");
+            Assert.Equal(4, tokens.Count(t => t.Type == TokenType.Const));
+        }
+
+        /// <summary>#UI's keys are not #settings' keys, so SettingsValidator must skip them.</summary>
+        [Fact]
+        public void JsonBlock_IsNotValidatedAgainstSettingsKeys() =>
+            Assert.DoesNotContain(Lint("#UI {\"type\": \"entry\"} L = 10m\nL").Diagnostics,
+                d => d.Code == "CPD-3413");
     }
 }

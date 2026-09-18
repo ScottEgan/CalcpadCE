@@ -32,6 +32,55 @@ Declare the input with `#UI` and give it an ordinary value:
 Entering a value in the input form is stored in a `uiOverrides` entry on the first line of the CalcpadCE file, so the file keeps its own default values and they stay unchanged when input fields are updated.
 You never have to write that entry yourself, but it is plain text if you ever want to edit it.
 
+### `%u` in comments is removed
+
+A `%u` in a comment used to be replaced with the document's length unit, and a **m** / **cm** / **mm** combo box was added to the input form so the reader could switch every occurrence at once.
+The **Default Input Length Unit** setting that drove it, and the `Units` variable holding the matching conversion factor, are removed with it.
+
+#### What breaks
+
+`%u` is no longer substituted and renders literally as `%u` in the output, and no unit combo box is added.
+`#settings {"units": "..."}` is now an unknown key, and reading the `Units` variable is an undefined variable error.
+
+#### How to update
+
+Replace each `%u` with the unit the document actually uses.
+
+Where an equation used `Units` as a conversion factor, write the factor itself instead based on what `%u` was replaced with.
+
+This is a temporary loss of functionality. 
+Dynamic input units are coming in a future version via string variables, where the unit can be picked from a dropdown and assigned to a string variable you can reference anywhere else in the document.
+There is also an option to input units with the number by setting "forceUnits:false" or "allowExpression:true", see [UI mode](new-ui-mode.md)
+
+### The report font changed from Georgia Pro to DejaVu Serif Condensed
+
+Georgia Pro could not be redistributed, so it was not ideal as a font that needed shipped over the web.
+Output now uses [DejaVu Serif Condensed](https://dejavu-fonts.github.io/), which ships with CalcpadCE and is embedded in every report.
+
+#### What breaks
+
+Only the report appearance changes, nothing about the calculation process is different.
+Equations are about 1% wider and lines 3% taller.
+DejaVu Serif also has no Light or SemiBold, so bold text and `∑`, `∏`, `∫` render heavier.
+
+#### How to update
+
+To restore the old look where Georgia Pro is installed, insert the **Report Fonts** snippet — Insert panel, under **CSS**:
+
+That snippet also contains examples to change font sizes, so here is a condensed version that just changes the font back if you have it installed already:
+
+```calcpad
+#val
+'<style>
+'  .eq, input[type="text"], table.matrix,
+'  .eq small var, .eq small i {
+'    font-family: "Georgia Pro", "Century Schoolbook", "Times New Roman", Times, serif;
+'  }
+'  .nary { font-family: "Georgia Pro Light", "Georgia Pro", serif; font-weight: 300; }
+'</style>
+#end val
+```
+
 ### Dots are no longer allowed as part of a variable name
 
 A dot after an identifier is now always element access. Names can no longer contain a dot.

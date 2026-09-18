@@ -1,25 +1,6 @@
 {
     "version": "2.0.0",
     "tasks": [
-        // ── WPF (Calcpad.Wpf — Windows desktop app) ─────────────────────
-        {
-            "label": "Wpf: Build",
-            "type": "process",
-            "command": "dotnet",
-            "args": [
-                "build",
-                "${workspaceFolder}/Calcpad.Wpf/Calcpad.wpf.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ],
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated"
-            },
-            "problemMatcher": "$msCompile"
-        },
-
         // ── Tests (Calcpad.Tests) ───────────────────────────────────────
         {
             "label": "Tests: Run",
@@ -65,6 +46,23 @@
                 "reveal": "always",
                 "panel": "dedicated"
             }
+        },
+        {
+            // Self-contained single-file Calcpad.Server.exe in
+            // publish/calcpad-server-portable/ — no .NET runtime required.
+            "label": "Server: Build Portable (Windows)",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}\\Calcpad.Web\\backend\\scripts\\build-portable.ps1"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": "$msCompile"
         },
         {
             "label": "Server: Build Slim Bundle",
@@ -604,7 +602,7 @@
             "problemMatcher": []
         },
 
-        // ── Version Bump (calcpad-frontend + calcpad-desktop + vscode-calcpad kept in sync) ──
+        // ── Version Bump (frontend packages + Directory.Build.props kept in sync) ──
         {
             "label": "Version: Bump Patch",
             "type": "process",
