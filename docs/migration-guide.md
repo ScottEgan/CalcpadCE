@@ -1,7 +1,7 @@
 # Migration Guide
 
 Most changes to CalcpadCE are additive, and documents written for an earlier version keep calculating unchanged.
-Changes that alter how existing code is interpreted are listed here. 
+Changes that alter how existing code is interpreted are listed here.
 These sections also note how to migrate to supported syntax.
 
 ## Migrate from 7.x.x
@@ -48,7 +48,7 @@ Replace each `%u` with the unit the document actually uses.
 
 Where an equation used `Units` as a conversion factor, write the factor itself instead based on what `%u` was replaced with.
 
-This is a temporary loss of functionality. 
+This is a temporary loss of functionality.
 Dynamic input units are coming in a future version via string variables, where the unit can be picked from a dropdown and assigned to a string variable you can reference anywhere else in the document.
 There is also an option to input units with the number by setting "forceUnits:false" or "allowExpression:true", see [UI mode](new-ui-mode.md)
 
@@ -85,7 +85,7 @@ That snippet also contains examples to change font sizes, so here is a condensed
 
 A dot after an identifier is now always element access. Names can no longer contain a dot.
 
-Previously the meaning of the dot depended on what happened to be in scope. 
+Previously the meaning of the dot depended on what happened to be in scope.
 If the name to the left of it already held a vector or a matrix, the dot was element access; in every other case it was absorbed into the name.
 This produced unpredictable behavior in certain cases, which is why this change was made.
 
@@ -94,7 +94,7 @@ This produced unpredictable behavior in certain cases, which is why this change 
 Only documents that used a dot inside a variable name. The errors are reported on the part of the name that follows the dot:
 
 | Code | Before | Now |
-|------|--------|-----|
+| ---- | ------ | --- |
 | `F.max = 10` | Defines a variable named `F.max` | `Undefined variable or units: "max".` |
 | `a.1` where `a` is a scalar | Reads a variable named `a.1` | `Index target must be vector.` |
 

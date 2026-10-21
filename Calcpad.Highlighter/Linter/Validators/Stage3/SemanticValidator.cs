@@ -3,6 +3,7 @@ using System.Text.Json;
 using Calcpad.Highlighter.Linter.Constants;
 using Calcpad.Highlighter.Linter.Helpers;
 using Calcpad.Highlighter.Linter.Models;
+using Calcpad.Highlighter.Tokenizer;
 using Calcpad.Highlighter.Tokenizer.Models;
 
 namespace Calcpad.Highlighter.Linter.Validators.Stage3
@@ -97,7 +98,8 @@ namespace Calcpad.Highlighter.Linter.Validators.Stage3
         {
             for (int i = 0; i < stage3.Lines.Count; i++)
             {
-                if (!tokenProvider.IsCpdMode(i)) continue;
+                if (!tokenProvider.IsCpdMode(i))
+                    continue;
 
                 var line = stage3.Lines[i];
 
@@ -351,9 +353,6 @@ namespace Calcpad.Highlighter.Linter.Validators.Stage3
                    op == "∧" || op == "←";
         }
 
-        /// <summary>
-        /// Checks if a keyword is valid. Includes regular keywords, control block keywords, and end keywords.
-        /// </summary>
         private static bool IsValidKeyword(string keyword)
         {
             return CalcpadBuiltIns.Keywords.Contains(keyword) ||

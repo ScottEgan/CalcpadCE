@@ -1,6 +1,6 @@
 ﻿# Theoretical Background
 
-*(you can skip this if you find it boring)*
+> (you can skip this if you find it boring)
 
 How does CalcpadCE actually work?
 There is a sophisticated math parser inside, that does most of the job.

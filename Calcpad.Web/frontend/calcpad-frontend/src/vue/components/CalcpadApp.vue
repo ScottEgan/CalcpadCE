@@ -642,6 +642,7 @@ const handleUpdateEditorFontFamily = (family: string) => {
 }
 
 const handleUpdatePdfSettings = (settings: PdfSettings) => {
+  pdfSettings.value = { ...settings }
   postMessage({
     type: 'updatePdfSettings',
     settings

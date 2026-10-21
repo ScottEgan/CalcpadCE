@@ -1,7 +1,6 @@
 <template>
   <div class="app-layout" :class="{ resizing: isAnyDividerDragging }">
-    <!-- Use v-show (not v-if) so #vue-sidebar stays in the DOM and the
-         Vue app mounted to it in main.ts isn't orphaned across collapses. -->
+    <!-- v-show, not v-if: main.ts mounts a Vue app into #vue-sidebar. -->
     <div
       v-show="sidebarVisible"
       class="sidebar-pane"
@@ -9,8 +8,7 @@
     >
       <div id="vue-sidebar"></div>
     </div>
-    <!-- Doubles as a drag-to-resize handle (when sidebar is open) and a
-         click-to-toggle collapse/expand button. -->
+    <!-- Drag to resize when open; click to toggle. -->
     <div
       class="resize-handle"
       :class="{ collapsed: !sidebarVisible, dragging: isResizing }"
@@ -21,17 +19,11 @@
       :aria-orientation="'vertical'"
       :aria-expanded="sidebarVisible"
     ></div>
-    <!-- UI mode is a data-entry view, so the preview takes the whole window and the
-         editor steps aside until the user exits it. The tab strip stays, though —
-         filling in one worksheet and moving to the next is the point of the mode, and
-         without tabs there is no way to switch. `.work-area` turns into a column so
-         that strip spans the window above the form; outside UI mode it is
-         `display: contents` and the panes lay out as direct siblings.
-         The wrapper and the panes share an indent level so adding it left the rest of
-         the template untouched. -->
+    <!-- UI mode gives the window to the input form; only the tab strip stays.
+         `.work-area` becomes a column for it, otherwise `display: contents`. -->
     <div class="work-area" :class="{ 'ui-mode': uiModeFullscreen }">
     <div class="editor-pane">
-      <!-- Editor groups, stacked top/bottom. One group normally; two when split. -->
+      <!-- Editor groups, stacked; two when split. -->
       <div class="editor-groups">
         <template v-for="(group, gi) in groups" :key="group.id">
           <div
@@ -41,10 +33,7 @@
             :style="editorGroupStyle(gi)"
             @mousedown="onGroupFocus(group.id)"
           >
-            <!-- Tab strip (VS Code-style). Hidden until at least one tab is registered.
-                 Grows a little taller only once its tabs actually overflow (tab-strip-overflowing),
-                 so the horizontal scrollbar that then appears has room and doesn't sit over the
-                 tabs' close buttons. Stays compact the rest of the time. -->
+            <!-- Grows taller only once the tabs overflow, to clear the scrollbar. -->
             <div
               v-if="group.tabs.length > 0"
               class="tab-strip"
@@ -78,8 +67,7 @@
               </div>
               <button class="tab-new" title="New tab (Ctrl+T)" @click="onNewTab(group.id)">+</button>
               <span class="spacer"></span>
-              <!-- Gated on the first group: .tab-strip is inside the v-for over groups,
-                   so an ungated cluster renders twice when split. -->
+              <!-- First group only; the strip is inside the v-for over groups. -->
               <div v-if="gi === 0 && !uiModeFullscreen" class="tab-actions">
                 <button
                   class="tab-action"
@@ -117,9 +105,7 @@
                 @click="onCloseGroup(group.id)"
               >✕</button>
             </div>
-            <!-- Wrapper only so the reveal button can be anchored to the top of the
-                 code area: .editor-group starts at the tab strip, whose height changes
-                 when the tabs overflow. -->
+            <!-- Anchors the reveal button to the code area, not the tab strip. -->
             <div v-show="!uiModeFullscreen" class="editor-area">
               <div class="editor-container" :ref="el => setEditorRef(group.id, el)"></div>
               <button
@@ -149,10 +135,8 @@
         </template>
       </div>
 
-      <!-- Right-click context menu for tabs. Rendered outside .tab-strip so it
-           can be positioned absolutely without being clipped. @mousedown.stop
-           keeps the document-level closer from firing before the button's
-           click handler runs. -->
+      <!-- Outside .tab-strip so it isn't clipped. @mousedown.stop keeps the
+           document-level closer from beating the click handler. -->
       <div
         v-if="tabContextMenu"
         class="tab-context-menu"
@@ -180,8 +164,7 @@
         </template>
       </div>
 
-      <!-- Problems context menu. Replaces the broken default WebView menu
-           (back/forward/stop/reload) with clipboard actions. -->
+      <!-- Problems context menu; replaces the broken default WebView menu. -->
       <div
         v-if="problemsContextMenu"
         class="tab-context-menu"
@@ -300,29 +283,10 @@
           <div v-if="filteredOutputLines.length === 0" class="problems-empty">No output on this channel yet.</div>
         </div>
       </div>
-      <!-- Status bar -->
-      <div v-show="!uiModeFullscreen" class="status-bar" @contextmenu.prevent>
-        <span class="status-problems" @click="openBottomTab('problems')">
-          <svg class="status-icon lintError" viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z"/>
-          </svg> {{ errorCount }}
-          <svg class="status-icon warning" viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M8.982 1.566a1.13 1.13 0 0 0-1.964 0L.165 13.233c-.457.778.091 1.767.982 1.767h13.706c.891 0 1.44-.99.982-1.767zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5m.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/>
-          </svg> {{ warningCount }}
-          <svg class="status-icon info" viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-          </svg> {{ infoCount }}
-        </span>
-        <span class="status-output" @click="openBottomTab('output')">Output</span>
-        <span class="spacer"></span>
-        <span v-if="serverStatus !== 'connected'" class="status-server" :class="serverStatus" :title="serverStatusTitle">
-          ● {{ serverStatusLabel }}
-        </span>
-      </div>
+
     </div>
 
-    <!-- Draggable divider between the editor and the results pane. Hidden in UI mode,
-         where the editor side collapses to just the tab strip and isn't resizable. -->
+    <!-- Editor ↔ results divider. Nothing to resize in UI mode. -->
     <div
       v-if="previewVisible && !uiModeFullscreen"
       class="pane-divider"
@@ -333,8 +297,7 @@
       aria-orientation="vertical"
     ></div>
 
-    <!-- Holds the input form and the report beside it, so UI mode can lay them out as a
-         row underneath the tab strip. Dissolved by `display: contents` otherwise. -->
+    <!-- Rows the input form and its report in UI mode; `display: contents` otherwise. -->
     <div class="preview-area">
     <div v-if="previewVisible" class="preview-pane" :class="{ fullscreen: uiModeFullscreen }" :style="previewPaneStyle()">
       <div class="preview-toolbar" @contextmenu.prevent>
@@ -398,18 +361,10 @@
           <button v-else class="toolbar-btn" @click="togglePreview">✕</button>
         </template>
       </div>
-      <!-- One preview iframe per editor group, stacked to mirror the editor
-           split. allow-scripts is required so the injected console-interception
-           script (and any user #HTML script) actually runs in the iframe.
-           allow-same-origin is deliberately absent: paired with allow-scripts it
-           would leave the frame holding this window's origin, so script in a
-           #HTML block of an untrusted worksheet could walk window.parent into the
-           app and, on desktop, into the Tauri IPC behind it. An opaque origin
-           makes postMessage the only channel — see injectPreviewAgent. It also
-           denies the frame localStorage/indexedDB, which throw on an opaque
-           origin. -->
-      <!-- Find-in-preview widget (VS Code style). Opened via Ctrl+F while the
-           preview is focused, or the preview context menu. -->
+      <!-- One preview iframe per editor group. allow-same-origin is deliberately
+           absent: with allow-scripts it would hand untrusted worksheet HTML this
+           window's origin. postMessage is the only channel — see injectPreviewAgent. -->
+      <!-- Find-in-preview; opened by Ctrl+F or the preview context menu. -->
       <div v-if="previewFind" class="preview-find" @contextmenu.prevent>
         <input
           ref="previewFindInput"
@@ -478,9 +433,7 @@
       aria-orientation="vertical"
     ></div>
 
-    <!-- Report companion to the input form: the print layout of the document
-         with the entered values applied, so the effect of each entry is visible
-         while filling it in. Toggled from the input toolbar. -->
+    <!-- Report companion to the input form: the print layout with entered values applied. -->
     <div v-if="uiModeFullscreen && uiPrintVisible" class="preview-pane ui-print-pane" :style="uiPrintPaneStyle()">
       <div class="preview-toolbar" @contextmenu.prevent>
         <span>Report</span>
@@ -504,10 +457,8 @@
     </div><!-- /.preview-area -->
     </div><!-- /.work-area -->
 
-    <!-- Preview context menu. Layered over the iframe in place of the broken
-         native WebView menu (see injectLineLinks). Positioned in viewport
-         coordinates and kept outside the editor pane, which is hidden while the
-         input form is fullscreen. -->
+    <!-- Replaces the broken native WebView menu (see injectLineLinks). Viewport
+         coordinates, and outside the editor pane, which UI mode hides. -->
     <div
       v-if="previewContextMenu"
       class="tab-context-menu"
@@ -534,8 +485,7 @@
       <button v-if="onOpenFullHtmlRequest" class="tab-context-item" @click="onOpenFullHtml">Open Full HTML</button>
     </div>
 
-    <!-- Confirm dialog. HTML modal instead of a native dialog for cross-platform
-         consistency between web and desktop. -->
+    <!-- HTML modal rather than a native dialog, for web/desktop consistency. -->
     <div v-if="confirmState" class="modal-backdrop" @click.self="resolveConfirm('cancel')">
       <div class="modal-card" role="dialog" aria-modal="true">
         <div class="modal-title">{{ confirmState.title }}</div>
@@ -548,8 +498,28 @@
       </div>
     </div>
 
-    <!-- Quick-pick dialog. A single-select list modal (VS Code QuickPick
-         analog) used e.g. by the image-storage prompt. -->
+    <!-- The target comes from the worksheet: shown as text, opened only by choice. -->
+    <div v-if="openLinkState" class="modal-backdrop" @click.self="resolveOpenLink(false)">
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <template v-if="openLinkState.mode === 'file'">
+          <div class="modal-title">Open this file?</div>
+          <div class="modal-message">This path comes from the worksheet. Your system will choose the application that opens it.</div>
+        </template>
+        <template v-else>
+          <div class="modal-title">Open external link?</div>
+          <div class="modal-message">This link comes from the worksheet and will open in your browser.</div>
+        </template>
+        <div class="modal-url">{{ openLinkState.url }}</div>
+        <div class="modal-actions">
+          <button class="modal-btn primary" @click="resolveOpenLink(true)">
+            {{ openLinkState.mode === 'file' ? 'Open File' : 'Open in Browser' }}
+          </button>
+          <button class="modal-btn" @click="resolveOpenLink(false)">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Single-select list modal (VS Code QuickPick analog). -->
     <div v-if="quickPickState" class="modal-backdrop" @click.self="resolveQuickPick(null)">
       <div class="modal-card quick-pick-card" role="dialog" aria-modal="true">
         <div class="modal-title">{{ quickPickState.title }}</div>
@@ -570,6 +540,25 @@
         </div>
       </div>
     </div>
+  </div>
+  <!-- Status bar -->
+  <div v-show="!uiModeFullscreen" class="status-bar" @contextmenu.prevent>
+    <span class="status-problems" @click="openBottomTab('problems')">
+      <svg class="status-icon lintError" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z"/>
+      </svg> {{ errorCount }}
+      <svg class="status-icon warning" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.964 0L.165 13.233c-.457.778.091 1.767.982 1.767h13.706c.891 0 1.44-.99.982-1.767zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5m.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/>
+      </svg> {{ warningCount }}
+      <svg class="status-icon info" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+      </svg> {{ infoCount }}
+    </span>
+    <span class="status-output" @click="openBottomTab('output')">Output</span>
+    <span class="spacer"></span>
+    <span v-if="serverStatus !== 'connected'" class="status-server" :class="serverStatus" :title="serverStatusTitle">
+      ● {{ serverStatusLabel }}
+    </span>
   </div>
 </template>
 
@@ -609,25 +598,24 @@ export interface ProblemItem {
   endColumn: number
 }
 
-// Result mode is shared across both groups. `onGotoProblem` targets the
-// active group's editor (main.ts resolves it).
+// Result mode is shared across groups; onGotoProblem targets the active one.
 const onGotoProblem = ref<((problem: ProblemItem) => void) | null>(null)
 const onPreviewToggled = ref<((visible: boolean) => void) | null>(null)
 const onResultModeChanged = ref<((mode: ResultMode) => void) | null>(null)
 const resultMode = ref<ResultMode>('preview')
 
-// True while the active document holds #UI values that aren't in its source yet.
+// #UI values entered but not yet written into the document source.
 const uiOverridesDirty = ref(false)
 const onSaveUiOverridesRequest = ref<(() => void) | null>(null)
-// Asked before the input form closes; false keeps it open (the user cancelled).
+// Asked before the input form closes; false keeps it open.
 const onExitUiModeRequest = ref<(() => Promise<boolean>) | null>(null)
-// "Print PDF" on the report/input toolbar; the host runs the report PDF export.
+// "Print PDF" — the host runs the export.
 const onPrintReportRequest = ref<(() => void) | null>(null)
 
 /** UI mode hands the whole window to the input form; only the tab strip stays. */
 const uiModeFullscreen = computed(() => previewVisible.value && resultMode.value === 'ui')
 
-// The report pane beside the input form, toggled like the preview pane itself.
+// The report pane beside the input form.
 const uiPrintVisible = ref(false)
 const onUiPrintToggled = ref<((visible: boolean) => void) | null>(null)
 
@@ -660,11 +648,7 @@ const activeGroupId = ref<string>('g0')
 const isSplit = computed(() => groups.value.length > 1)
 const activeGroup = computed(() => groups.value.find(g => g.id === activeGroupId.value) ?? groups.value[0])
 
-/**
- * A compiled worksheet has no readable source and its editor is locked, so input is the only
- * mode offered and the other buttons are left out rather than shown disabled. The report is
- * still reachable beside the form (see `uiPrintVisible`).
- */
+/** A compiled worksheet has no readable source, so input is the only mode offered. */
 const COMPILED_RESULT_MODES: ResultMode[] = ['ui']
 const activeTabIsCompiled = computed(() => {
   const filePath = activeGroup.value?.tabs.find(t => t.isActive)?.filePath
@@ -682,11 +666,9 @@ const activeGroupLabel = computed(() => {
   return i === 0 ? 'Top' : 'Bottom'
 })
 
-// DOM element registries (function refs). main.ts reads these to create the
-// Monaco editor / write preview HTML for each group.
+// DOM registries main.ts reads to build each group's editor and preview.
 const editorEls = new Map<string, HTMLElement>()
-// Two stacked iframes per preview: a render goes into whichever is behind and is
-// brought forward once it has painted, so the visible frame is never mid-replacement.
+// Two stacked iframes: a render lands in the back one and comes forward once painted.
 type FramePair = [HTMLIFrameElement | null, HTMLIFrameElement | null]
 const previewEls = new Map<string, FramePair>()
 // Iframes of the report pane shown beside the input form in UI mode.
@@ -695,15 +677,11 @@ const frontBuffer = ref<Record<string, 0 | 1>>({})
 const loadingBuffer = ref<Record<string, 0 | 1>>({})
 // Last full (unstripped) HTML rendered per group, kept for "Open Full HTML".
 const previewHtmlByGroup = new Map<string, string>()
-// Where the user was in each frame's #UI form — focused control, caret, datagrid cell. Held here
-// because a re-render assigns srcdoc, and the fresh browsing context that creates has neither the
-// previous window nor, on an opaque origin, sessionStorage; the backend's #UI script posts it and
-// it is seeded back into the next render.
+// Position within each frame's #UI form. Held here because srcdoc gives every render a
+// fresh browsing context, with no sessionStorage on an opaque origin.
 const uiPositionByFrame = new Map<string, unknown>()
-// Where each frame was looking, per frame *and* document, so re-rendering a
-// document lands back there while switching tabs still starts at the top. An
-// offset alone cannot express it — see scroll-anchor.ts — so this is the anchor
-// the frame reported along with it.
+// Scroll position per frame *and* document, so a re-render returns but a tab switch
+// starts at the top. Anchor-based rather than an offset — see scroll-anchor.ts.
 const scrollByFrameDoc = new Map<string, PreviewScrollState>()
 const docKeyByFrame = new Map<string, string>()
 
@@ -716,11 +694,8 @@ function setEditorRef(id: string, el: unknown): void {
   else editorEls.delete(id)
 }
 
-// Tracks which tab strips actually overflow horizontally, so only those grow taller
-// to make room for the scrollbar (see the .tab-strip-overflowing CSS). A ResizeObserver
-// catches both causes of a strip's overflow changing: the window resizing and tabs being
-// added/closed/renamed (each changes scrollWidth/clientWidth without necessarily firing
-// any other event we already listen for).
+// Which tab strips overflow, so only those grow taller for the scrollbar. A
+// ResizeObserver catches both causes: window resizes and tabs coming and going.
 const tabStripEls = new Map<string, HTMLElement>()
 const tabStripElIds = new WeakMap<Element, string>()
 const tabStripOverflowIds = ref<Set<string>>(new Set())
@@ -780,10 +755,8 @@ function frontIndex(frameId: string): 0 | 1 {
 function frontFrame(frameId: string): HTMLIFrameElement | null {
   return framePair(frameId)?.[frontIndex(frameId)] ?? null
 }
-// A buffer that is neither in front nor mid-render holds a document the user has
-// already been moved off; taking it out of the focus order keeps Tab from reaching it.
-// The one being rendered into is left alone: the backend's #UI script restores focus
-// and caret as it loads, which inert would silently swallow.
+// Keeps Tab out of a buffer the user has been moved off. The one mid-render is left
+// alone — inert would swallow the #UI script's focus restore.
 function bufferInert(frameId: string, slot: number): boolean {
   return slot !== frontIndex(frameId) && slot !== loadingBuffer.value[frameId]
 }
@@ -795,11 +768,7 @@ function getEditorContainer(id: string): HTMLElement | null {
 const editorSplitRatio = ref<number>(0.5)
 const draggingEditorDivider = ref(false)
 
-/**
- * The groups the editor side and the preview side each render. The input form is a
- * single-document view — a split would stack two forms sharing one set of entered values —
- * so UI mode renders only the active group.
- */
+/** UI mode renders only the active group: the input form is a single-document view. */
 const visibleGroups = computed(() =>
   uiModeFullscreen.value ? [activeGroup.value].filter(Boolean) : groups.value)
 
@@ -850,11 +819,8 @@ const draggingPreviewDivider = ref(false)
 const uiPrintWidthRatio = ref<number>(loadPaneRatio('calcpad.uiPrintWidthRatio', 0.5))
 const draggingUiPrintDivider = ref(false)
 
-// True while any drag-to-resize is in progress. Drives `.app-layout.resizing`, which
-// disables pointer-events on the preview/report iframes: without it, the moment the
-// cursor crosses into an iframe mid-drag the mousemove/mouseup listeners below — bound
-// to the outer `window` — stop receiving events (they fire in the iframe's own window
-// instead), so the drag never sees its mouseup and the pane appears stuck mid-resize.
+// Drives `.app-layout.resizing`, which kills pointer-events on the iframes: a cursor
+// crossing into one mid-drag would otherwise steal the mousemove/mouseup.
 const isAnyDividerDragging = computed(() =>
   isResizing.value || draggingEditorDivider.value || draggingPreviewDivider.value || draggingUiPrintDivider.value)
 
@@ -869,8 +835,7 @@ function uiPrintPaneStyle(): Record<string, string> {
   return { flex: `0 0 ${uiPrintWidthRatio.value * 100}%` }
 }
 
-// Dragged against `.app-layout`'s box rather than the divider's own parent
-// (`.work-area`), which is `display: contents` and so has no box of its own.
+// Measured against `.app-layout`: `.work-area` is `display: contents` and has no box.
 function onPreviewDividerMouseDown(e: MouseEvent): void {
   e.preventDefault()
   draggingPreviewDivider.value = true
@@ -961,9 +926,7 @@ function groupIds(): string[] {
 
 function onToggleSplit(): void {
   if (isSplit.value) {
-    // Merge: always close the bottom group; the top (primary) is preserved
-    // and the bottom is created fresh on each split (main.ts prompts for
-    // dirty tabs before closing).
+    // Merge closes the bottom group; the top is the primary one.
     const bottom = groups.value[groups.value.length - 1]
     if (bottom) onCloseGroupRequest.value?.(bottom.id)
   } else {
@@ -987,17 +950,13 @@ const onTabOpenContainingFolderRequest = ref<((groupId: string, id: string) => v
 const onTabCopyFullPathRequest = ref<((groupId: string, id: string) => void) | null>(null)
 const onTabCopyRelativePathRequest = ref<((groupId: string, id: string) => void) | null>(null)
 
-// Generic clipboard write. Set by the host (main.ts) to route through Tauri's
-// native clipboard on desktop; falls back to the Web Clipboard API otherwise.
+// Set by the host to use Tauri's native clipboard; falls back to the Web API.
 const onCopyTextRequest = ref<((text: string) => void) | null>(null)
-// Read counterpart, set by the desktop host only. Its presence is what marks a
-// WebView whose frames have no usable native clipboard, so the preview takes
-// over its own Ctrl+C/X/V (see injectPreviewAgent).
+// Desktop host only. Its presence marks a WebView whose frames must handle their
+// own Ctrl+C/X/V (see injectPreviewAgent).
 const onClipboardReadRequest = ref<(() => Promise<string>) | null>(null)
 
-// Opens the full rendered HTML as raw text in a new (unsaved) editor tab in
-// the group the preview belongs to — mirrors vscode-calcpad's "View Webview
-// Source". Left null (button hidden) when the host doesn't wire it up.
+// Opens the rendered HTML as raw text in a new tab. Null hides the button.
 const onOpenFullHtmlRequest = ref<((groupId: string, html: string) => void) | null>(null)
 
 interface TabContextMenuState {
@@ -1179,8 +1138,7 @@ function onPreviewClipboard(action: PreviewClipboardAction): void {
 // ---- Clipboard inside the preview (#UI input form) ----
 type PreviewClipboardAction = 'cut' | 'copy' | 'paste'
 
-// Clipboard-capable frames are addressed by group, with the report pane beside
-// the input form distinguished by a prefix since it shares its group's id.
+// Frames are addressed by group; the report pane shares its group's id, hence the prefix.
 const UI_PRINT_FRAME = 'ui-print:'
 
 function clipboardFrame(frameId: string): HTMLIFrameElement | null {
@@ -1194,18 +1152,15 @@ async function readClipboardText(): Promise<string> {
 
 /** Sends a command to a preview frame's injected agent. See injectPreviewAgent. */
 function postToPreviewFrame(frameId: string, message: Record<string, unknown>): void {
-  // The frame is sandboxed to an opaque origin, so '*' is the only targetOrigin
-  // that can address it. That is safe in this direction: these commands carry no
-  // secrets, and the frame is the untrusted party — the boundary being defended
-  // is the other way round, in onPreviewWindowMessage.
+  // An opaque origin leaves '*' as the only targetOrigin. Safe outbound: these
+  // commands carry no secrets; the inbound check is in onPreviewWindowMessage.
   clipboardFrame(frameId)?.contentWindow?.postMessage(message, '*')
 }
 
 /**
- * Runs a clipboard action against whatever the frame is focused on, which the desktop WebView
- * leaves inert otherwise. The frame does the work: reaching into its DOM from here would need
- * allow-same-origin, which would hand any script in an untrusted worksheet the run of this
- * window and, on desktop, the Tauri IPC.
+ * Clipboard action against whatever the frame has focused, which the desktop WebView
+ * otherwise leaves inert. The frame does the work; reaching its DOM from here would
+ * need allow-same-origin.
  */
 async function runPreviewClipboardAction(frameId: string, action: PreviewClipboardAction): Promise<void> {
   const text = action === 'paste' ? await readClipboardText() : undefined
@@ -1214,9 +1169,8 @@ async function runPreviewClipboardAction(frameId: string, action: PreviewClipboa
   postToPreviewFrame(frameId, { type: 'cpdClipboardExec', action, text })
 }
 
-// A copy/cut reply is only honoured just after the host asked for one. The frame
-// supplies the text, so without this an untrusted worksheet could post
-// previewClipboardText on a timer and quietly own the user's clipboard.
+// A copy/cut reply is only honoured just after the host asked for one — otherwise a
+// worksheet could post previewClipboardText on a timer and own the clipboard.
 const clipboardCopyArmed = new Map<string, number>()
 const CLIPBOARD_REPLY_WINDOW_MS = 2000
 
@@ -1230,10 +1184,8 @@ function takeClipboardCopyArmed(frameId: string): boolean {
   return at !== undefined && performance.now() - at < CLIPBOARD_REPLY_WINDOW_MS
 }
 
-// One Ctrl+V can reach here twice — from the frame's key handler and from the
-// host's menu accelerator — depending on whether the WebView consumed the key,
-// and a paste that lands twice inserts the text twice. Only the key-driven
-// routes are deduplicated; a context-menu click is always meant.
+// One Ctrl+V can arrive twice (frame key handler + host accelerator). Only the
+// key-driven routes are deduplicated; a context-menu click is always meant.
 let lastPreviewClipboard = { action: '', at: 0 }
 
 function isRepeatedPreviewClipboard(action: PreviewClipboardAction): boolean {
@@ -1243,11 +1195,7 @@ function isRepeatedPreviewClipboard(action: PreviewClipboardAction): boolean {
   return repeated
 }
 
-/**
- * Routes a host's native Edit menu into a focused preview / report frame.
- * Returns false when neither holds focus, leaving the host to handle the action
- * itself.
- */
+/** Routes the host's Edit menu into a focused preview/report frame; false if none is. */
 function runFocusedPreviewClipboardAction(action: PreviewClipboardAction): boolean {
   const focused = document.activeElement
   for (const groupId of previewEls.keys()) {
@@ -1300,8 +1248,7 @@ const previewFind = ref<PreviewFindState | null>(null)
 const previewFindInput = ref<HTMLInputElement | null>(null)
 
 function openPreviewFind(groupId: string): void {
-  // Search runs against a group's preview iframe, so a frame without one — the report
-  // pane beside the input form — has nothing to open the widget over.
+  // Nothing to search over for a frame with no preview iframe (the report pane).
   if (!previewEls.has(groupId)) return
   const existing = previewFind.value
   previewFind.value = {
@@ -1323,10 +1270,8 @@ function closePreviewFind(): void {
   previewFind.value = null
 }
 
-// Find runs inside the frame (see injectPreviewAgent): the marking walk needs the
-// preview's DOM, and reaching it from here would mean allow-same-origin on a frame
-// that renders untrusted worksheet HTML. The host keeps only the counts, which the
-// frame reports back as cpdFindResult.
+// Find runs inside the frame (see injectPreviewAgent); reaching its DOM from here
+// would mean allow-same-origin. The host keeps only the counts.
 function clearPreviewMarks(groupId: string): void {
   postToPreviewFrame(groupId, { type: 'cpdFindClear' })
 }
@@ -1360,10 +1305,8 @@ function onDocumentInteractionForTabMenu(e: MouseEvent | KeyboardEvent): void {
 }
 
 /**
- * The frame a message came from, or null if it was not one of ours. Preview frames are
- * sandboxed to an opaque origin, so `e.origin` is the string "null" for all of them and
- * window identity is the only check that means something; both buffers of a pair count,
- * since the one behind is loading the render about to be shown.
+ * The frame a message came from, or null. `e.origin` is "null" for every sandboxed frame,
+ * so window identity is the only meaningful check. Both buffers of a pair count.
  */
 function senderFrameId(source: MessageEventSource | null): string | null {
   if (!source) return null
@@ -1376,11 +1319,7 @@ function senderFrameId(source: MessageEventSource | null): string | null {
   return null
 }
 
-/**
- * True if a message came from one of this app's preview frames. Exposed so the
- * host's own listener in main.ts can apply the same check to the frame-originated
- * messages it handles (previewConsole, navigateToLine, uiValueChange).
- */
+/** Exposed so main.ts's own message listener can apply the same check. */
 function isPreviewFrameSource(source: MessageEventSource | null): boolean {
   return senderFrameId(source) !== null
 }
@@ -1390,9 +1329,7 @@ function onPreviewWindowMessage(e: MessageEvent): void {
   if (!data || typeof data.type !== 'string') return
   const frameId = senderFrameId(e.source)
   if (!frameId) return
-  // A frame may only speak for itself: the ids it sends are used to route
-  // clipboard and find commands, so taking them on trust would let one preview
-  // drive another's.
+  // A frame may only speak for itself; a trusted id would let one preview drive another's.
   const groupId = frameId.startsWith(UI_PRINT_FRAME)
     ? frameId.slice(UI_PRINT_FRAME.length)
     : frameId
@@ -1415,8 +1352,7 @@ function onPreviewWindowMessage(e: MessageEvent): void {
       groupId,
       frameId,
       selection: typeof data.selection === 'string' ? data.selection : '',
-      // Reported by the frame, which is the only side that can see what it has
-      // focused now that the host cannot reach into its document.
+      // Only the frame can see what it has focused.
       editable: data.editable === true,
     }
     return
@@ -1426,7 +1362,6 @@ function onPreviewWindowMessage(e: MessageEvent): void {
     if (!isRepeatedPreviewClipboard(action)) void runPreviewClipboardAction(frameId, action)
     return
   }
-  // Copy/cut text the frame extracted, on its way to the host-owned clipboard.
   // Only accepted as the reply to a copy the host just requested.
   if (data.type === 'previewClipboardText') {
     if (!takeClipboardCopyArmed(frameId)) return
@@ -1442,10 +1377,8 @@ function onPreviewWindowMessage(e: MessageEvent): void {
     return
   }
   if (data.type === 'cpdScrollState') {
-    // Only the buffer in front speaks for where the user is. The demoted one still holds
-    // a live document, and its restore re-anchors once when it settles — up to MAX_MS
-    // after the render that replaced it, which on slow async content lands well after the
-    // new front frame has reported and would overwrite it with the old position.
+    // Only the front buffer speaks for where the user is; a demoted one still settles
+    // and would overwrite the new position with its own.
     if (frontFrame(frameId)?.contentWindow !== e.source) return
     const docKey = docKeyByFrame.get(frameId)
     if (docKey === undefined) return
@@ -1490,9 +1423,7 @@ const previewVisible = ref(true)
 // Groups with an in-flight preview render; drives the "Calculating…" overlay.
 const previewLoadingGroups = ref(new Set<string>())
 const previewLoading = computed(() => previewLoadingGroups.value.size > 0)
-// Theme the rendered document uses, which is its own setting rather than the app's
-// (main.ts:resolvePreviewTheme). The overlay follows it so it does not wash a dark
-// report with white.
+// The rendered document's own theme (main.ts:resolvePreviewTheme); the overlay follows it.
 const previewTheme = ref<'light' | 'dark'>('light')
 const bottomPanelOpen = ref(false)
 const activeBottomTab = ref<'problems' | 'output'>('problems')
@@ -1520,9 +1451,7 @@ const outputLines = ref<OutputLine[]>([])
 const outputList = ref<HTMLElement | null>(null)
 const activeOutputChannel = ref<OutputChannel>('app')
 
-// The 'preview'/'html' channels are per-group (each split preview has its own
-// console/rendered HTML), so filter them by the active group. 'app' / 'server'
-// are global.
+// 'preview'/'html' are per-group, so filter by the active one; 'app'/'server' are global.
 const filteredOutputLines = computed(() =>
   outputLines.value.filter(l =>
     l.channel === activeOutputChannel.value &&
@@ -1539,9 +1468,7 @@ function openBottomTab(tab: 'problems' | 'output'): void {
   }
 }
 
-// User-configurable cap on retained output lines per channel. Older lines in
-// that channel are dropped once the cap is exceeded — a lower value helps
-// performance when large log volumes accumulate.
+// Cap on retained output lines per channel; older lines are dropped.
 const maxOutputLinesPerChannel = ref<number>(1000)
 function trimChannel(channel: OutputChannel): void {
   const cap = maxOutputLinesPerChannel.value
@@ -1555,8 +1482,7 @@ function trimChannel(channel: OutputChannel): void {
     return true
   })
 }
-// Per-render console relay cap, baked into the script each render injects, so a change
-// only takes effect on the next one. Held here because App.vue builds those scripts.
+// Baked into each render's injected script, so a change only takes effect on the next.
 const maxPreviewConsoleMessages = ref<number>(DEFAULT_CONSOLE_MESSAGES_PER_DOCUMENT)
 function setMaxPreviewConsoleMessages(n: number): void {
   if (!Number.isFinite(n) || n < MIN_CONSOLE_MESSAGES_PER_DOCUMENT) return
@@ -1575,15 +1501,13 @@ function appendOutput(
   channel: OutputChannel = 'app',
   groupId?: string,
 ): void {
-  // Only the diagnostic channels are filtered. 'preview' and 'html' carry the worksheet's own
-  // output, which the user asked for by running it and which no log level should swallow.
+  // Only diagnostic channels are filtered; 'preview'/'html' carry the worksheet's own output.
   const diagnostic = channel === 'app' || channel === 'server'
   if (diagnostic && !shouldLog(DISPLAY_LOG_LEVEL[level])) return
   const now = new Date()
   const time = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
   const labels: Record<string, string> = { info: 'INFO', warn: 'WARN', error: 'ERROR', debug: 'DEBUG' }
-  // Sample scroll position BEFORE mutating outputLines so the new line's
-  // height doesn't inflate scrollHeight and mask a user-initiated scroll-up.
+  // Sampled before the push, or the new line's height masks a user scroll-up.
   const el = outputList.value
   const wasAtBottom = el
     ? (el.scrollHeight - el.scrollTop - el.clientHeight) <= 4
@@ -1601,7 +1525,7 @@ function appendOutput(
 }
 
 function clearOutput(): void {
-  // Only clear the currently visible channel — match VS Code's per-channel clear.
+  // Per-channel clear, as in VS Code.
   outputLines.value = outputLines.value.filter(l => l.channel !== activeOutputChannel.value)
 }
 
@@ -1617,8 +1541,7 @@ function toggleSidebar(): void {
 
 const onLayoutChanged = ref<((layout: WorkspaceLayout) => void) | null>(null)
 
-// Watched rather than reported from each toggle: the resize handle, the bottom
-// panel's own ✕ and its tab buttons all flip these directly.
+// Watched, not reported per toggle: several controls flip these directly.
 watch([sidebarVisible, previewVisible, bottomPanelOpen, activeBottomTab], () => {
   onLayoutChanged.value?.({
     sidebarVisible: sidebarVisible.value,
@@ -1628,10 +1551,7 @@ watch([sidebarVisible, previewVisible, bottomPanelOpen, activeBottomTab], () => 
   })
 })
 
-/**
- * Restore a persisted layout. Assigns the refs directly, bypassing `togglePreview`'s
- * input-mode guard — there is no session to leave yet.
- */
+/** Restores a persisted layout, bypassing `togglePreview`'s input-mode guard. */
 function setLayout(layout: WorkspaceLayout): void {
   sidebarVisible.value = layout.sidebarVisible
   previewVisible.value = layout.previewVisible
@@ -1653,8 +1573,7 @@ function loadSidebarWidth(): number {
 }
 
 function onSidebarHandleMouseDown(e: MouseEvent): void {
-  // If the sidebar is currently collapsed, a single click opens it instead
-  // of starting a resize drag — there's nothing to resize yet.
+  // Collapsed: a click opens it instead of starting a drag.
   if (!sidebarVisible.value) {
     e.preventDefault()
     sidebarVisible.value = true
@@ -1696,19 +1615,14 @@ function isPreviewVisible(): boolean {
 
 async function setResultMode(mode: ResultMode): Promise<void> {
   if (resultMode.value === mode) return
-  // Guarded here rather than only on the buttons, so the native View menu, the
-  // restored-on-startup mode, and the auto-switch to unwrapped are all covered.
+  // Guarded here rather than on the buttons, so every caller is covered.
   if (!resultModeAvailable(mode)) return
   if (resultMode.value === 'ui' && !await confirmExitUiMode()) return
   resultMode.value = mode
   onResultModeChanged.value?.(mode)
 }
 
-/**
- * Runs the host's leave-input-mode handler, which prompts for unsaved values and
- * then discards them. Returns false when the user cancelled and the form should
- * stay open.
- */
+/** The host's leave-input-mode prompt; false when the user cancelled. */
 async function confirmExitUiMode(): Promise<boolean> {
   return await onExitUiModeRequest.value?.() ?? true
 }
@@ -1747,10 +1661,8 @@ const PREVIEW_READY_TIMEOUT_MS = 30000
 const frameReadyWaiters = new Map<HTMLIFrameElement, () => void>()
 
 /**
- * Resolves when the document written into `frame` reports itself loaded, via the ping
- * injectPreviewAgent posts — the element's own load event fires for the initial about:blank
- * too. Timed out rather than left pending, so a document that never finishes loading still
- * ends up on screen.
+ * Resolves on the ping injectPreviewAgent posts; the element's own load event fires for
+ * the initial about:blank too. Timed out so a stuck document still reaches the screen.
  */
 function awaitFrameReady(frame: HTMLIFrameElement): Promise<void> {
   frameReadyWaiters.get(frame)?.()
@@ -1776,9 +1688,8 @@ function resolveFrameReady(source: MessageEventSource | null): void {
 }
 
 /**
- * Writes a document into the pair's back buffer and brings it forward once it has
- * painted. The front index is set to the slot written rather than toggled, so two
- * renders racing on the same pair cannot flip it back to the stale one.
+ * Writes into the back buffer and brings it forward once painted. The front index is
+ * set, not toggled, so racing renders cannot flip back to the stale slot.
  */
 function commitToBuffer(frameId: string, html: string): Promise<void> {
   const slot: 0 | 1 = frontIndex(frameId) === 0 ? 1 : 0
@@ -1791,23 +1702,19 @@ function commitToBuffer(frameId: string, html: string): Promise<void> {
   frame.srcdoc = html
   return ready.then(() => {
     frontBuffer.value = { ...frontBuffer.value, [frameId]: slot }
-    // Two live documents is the cost of never showing a half-replaced frame. For a large
-    // render that doubles what the pane holds, and the demoted buffer is only ever
-    // overwritten by the next render, so it is emptied rather than kept.
+    // The demoted buffer is only overwritten by the next render, so a large one is
+    // emptied rather than left holding a second copy.
     if (demoted && demoted !== frame && html.length > BACK_BUFFER_CLEAR_CHARS) demoted.srcdoc = ''
   })
 }
 
-// Assigning srcdoc forces a real navigation (a fresh browsing context) rather than rewriting
-// the existing document in place. Reusing one document via doc.open()/write()/close() left
-// WebKit's per-frame scrolling state prone to desync, losing the preview's scrollbar until
-// the iframe was recreated.
+// srcdoc forces a fresh browsing context; reusing one document via doc.open()/write()
+// desynced WebKit's scrolling state and lost the preview's scrollbar.
 function setPreviewHtml(groupId: string, html: string, scrollToLine?: number, docKey = ''): Promise<void> {
   if (!previewEls.has(groupId)) return Promise.resolve()
   const isUi = resultMode.value === 'ui'
   docKeyByFrame.set(groupId, docKey)
-  // An explicit line target is a navigation the user asked for, and outranks
-  // returning them to where they were.
+  // An explicit line target outranks restoring the old position.
   const seed = scrollToLine === undefined ? scrollByFrameDoc.get(scrollKey(groupId, docKey)) : undefined
   let out = injectPreviewAgent(
     injectLineLinks(html, scrollToLine, groupId, undefined, !isUi),
@@ -1823,10 +1730,8 @@ function setPreviewHtml(groupId: string, html: string, scrollToLine?: number, do
 }
 
 /**
- * Writes the report that accompanies the input form. It carries no controls and nothing in it
- * logs, so it needs neither the #UI event script nor console interception; it does get the
- * clipboard bridge, but not the hover line links, since input mode hides the editor they
- * would navigate to.
+ * Writes the report beside the input form. No controls and no logging, so it skips the #UI
+ * event script and console interception, and the line links whose editor is hidden.
  */
 function setUiPrintHtml(groupId: string, html: string, docKey = ''): Promise<void> {
   if (!uiPrintEls.has(groupId)) return Promise.resolve()
@@ -1850,29 +1755,24 @@ function toggleUiPrint(): void {
   onUiPrintToggled.value?.(uiPrintVisible.value)
 }
 
-// Mirrors the last rendered preview into the 'html' output channel (body only) for debugging,
-// each render replacing the group's prior line. Clipped, because maxOutputLines caps lines
-// and not their length: a whole render in one line is a second copy of the document.
+// Mirrors the last render's body into the 'html' channel, replacing the group's prior
+// line. Clipped, since the cap counts lines and not their length.
 function setPreviewHtmlOutput(groupId: string, html: string): void {
   outputLines.value = outputLines.value.filter(l => !(l.channel === 'html' && l.groupId === groupId))
   appendOutput('info', truncateForOutput(extractBodyHtml(html), MAX_HTML_MIRROR_CHARS), 'html', groupId)
 }
 
-// Scroll a group's results to a source line (editor/TOC -> preview sync), including the report
-// beside the input form so both panes move together. `exact` disables the
-// nearest-preceding-line fallback, so a TOC heading inside a hidden #pre/#post block does
-// nothing rather than jumping to an unrelated line.
+// Editor/TOC -> preview sync, moving the report pane with it. `exact` drops the
+// nearest-preceding-line fallback, so a hidden heading jumps nowhere.
 function scrollPreviewToSourceLine(groupId: string, line: number, exact = false): void {
   const msg = { type: 'scrollPreviewToLine', line, exact }
   frontFrame(groupId)?.contentWindow?.postMessage(msg, '*')
   frontFrame(UI_PRINT_FRAME + groupId)?.contentWindow?.postMessage(msg, '*')
 }
 
-// Inject the per-render line-link behaviour ported from vscode-calcpad; the static CSS it
-// relies on lives in the backend's template.html. `frameId` addresses the iframe itself and
-// only differs for the report pane beside the input form, while `lineLinks` turns just the
-// hover arrows off — both the form and that report drop them, since the editor they navigate
-// to isn't on screen.
+// Per-render line-link behaviour ported from vscode-calcpad; its CSS lives in the
+// backend's template.html. `lineLinks` turns off just the hover arrows, which the input
+// form and its report drop along with the editor they navigate to.
 function injectLineLinks(
   html: string,
   scrollToLine: number | undefined,
@@ -1890,13 +1790,11 @@ function injectLineLinks(
     "  var post = function(line, lineType) {",
     "    try { window.parent.postMessage({ type: 'navigateToLine', line: line, lineType: lineType, groupId: GROUP_ID }, '*'); } catch (e) {}",
     "  };",
-    // Replace WebKitGTK's broken native menu with the parent's custom menu.
-    // pointerdown posts a dismiss first, then contextmenu reopens, so a
-    // right-click nets an open menu and any other click dismisses it.
+    // Replaces WebKitGTK's broken native menu. pointerdown dismisses and
+    // contextmenu reopens, so a right-click nets an open menu.
     "  var postMenu = function(type, e) {",
     "    var sel = ''; try { sel = String(window.getSelection() || ''); } catch (_e) {}",
-    // Whether the menu offers cut/paste depends on what this frame has focused,
-    // which only this side can see. injectPreviewAgent publishes the probe.
+    // Only this side can see what is focused; injectPreviewAgent publishes the probe.
     "    var editable = false;",
     "    try { editable = !!(window.__calcpadPreviewEditable && window.__calcpadPreviewEditable()); } catch (_e1) {}",
     "    try { window.parent.postMessage({ type: type, x: e ? e.clientX : 0, y: e ? e.clientY : 0, selection: sel, editable: editable, groupId: FRAME_ID }, '*'); } catch (_e2) {}",
@@ -1924,11 +1822,37 @@ function injectLineLinks(
     "      post(parseInt(n, 10), lineType);",
     "    });",
     "  });",
+    // A sandboxed frame may navigate itself, so no activation reaches the default action.
+    // Known schemes go to the host, which prompts. auxclick covers middle-click.
+    "  function onLinkActivate(e) {",
+    "    if (e.type === 'auxclick' && e.button !== 1) return;",
+    "    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;",
+    "    if (!a || a.hasAttribute('data-text')) return;",
+    "    var href = a.getAttribute('href') || '';",
+    "    if (!href) return;",
+    "    e.preventDefault();",
+    // srcdoc has no document URL: the default action blanks the frame.
+    "    if (href.charAt(0) === '#') { scrollToFragment(href.slice(1)); return; }",
+    "    if (!/^(https?|file):/i.test(href)) return;",
+    "    try { window.parent.postMessage({ type: 'openExternal', url: href, groupId: FRAME_ID }, '*'); } catch (_e) {}",
+    "  }",
+    "  function scrollToFragment(raw) {",
+    "    var id = raw;",
+    "    try { id = decodeURIComponent(raw); } catch (_e) {}",
+    "    var t = id ? (document.getElementById(id) || document.getElementsByName(id)[0]) : document.body;",
+    "    if (!t) return;",
+    "    if (window.__calcpadReleaseScroll) window.__calcpadReleaseScroll();",
+    "    t.scrollIntoView({ block: 'start' });",
+    "  }",
+    "  document.addEventListener('click', onLinkActivate);",
+    "  document.addEventListener('auxclick', onLinkActivate);",
     ...(lineLinks ? [
     "  function hideAllLineLinks() {",
     "    document.querySelectorAll('.lineLink').forEach(function(l) { l.style.display = 'none'; });",
     "  }",
+    // The arrow sits at left:-3em inside .line, so inline ones are skipped.
     "  document.querySelectorAll('.line').forEach(function(el) {",
+    "    if (el.closest('a[href]') || getComputedStyle(el).display === 'inline') return;",
     "    var id = el.id || '';",
     "    var n = id.indexOf('line-') === 0 ? id.slice(5) : '';",
     "    var src = el.getAttribute('data-source-line') || n;",
@@ -1952,8 +1876,7 @@ function injectLineLinks(
     "  });",
     "  window.addEventListener('scroll', hideAllLineLinks);",
     ] : []),
-    // Anything that moves the page on purpose has to take it off the scroll agent
-    // first, or the restore in progress pulls the user straight back.
+    // Release the scroll agent first, or its restore pulls the user back.
     "  function goTo(target, block) {",
     "    if (!target) return;",
     '    if (window.__calcpadReleaseScroll) window.__calcpadReleaseScroll();',
@@ -2005,16 +1928,14 @@ function injectLineLinks(
 }
 
 /**
- * Seeds the position the frame reported before this render into the new document, where the
- * backend's #UI script picks it up as the fallback its readState() already looks for. Consumed
- * once, and placed in <head> so it runs before the #UI script at </body>.
+ * Seeds the pre-render position for the backend's #UI script to pick up. Consumed once, and
+ * in <head> so it runs before that script at </body>.
  */
 function injectUiPosition(html: string, frameId: string): string {
   const state = uiPositionByFrame.get(frameId)
   if (state === undefined) return html
   uiPositionByFrame.delete(frameId)
-  // The state carries a control key taken from the document, so close any tag the
-  // serialization could otherwise open.
+  // The state carries a key from the document, so close any tag it could open.
   const json = JSON.stringify(state).replace(/</g, '\\u003c')
   return insertHeadScript(html, 'window.__calcpadUiPosition = ' + json + ';')
 }
@@ -2029,11 +1950,9 @@ function insertHeadScript(html: string, body: string): string {
 }
 
 /**
- * The frame's half of find-in-preview and the clipboard bridge. Doing this DOM work in the frame
- * lets it hold an opaque origin with postMessage as the only channel across, where running it from
- * the host would need `allow-same-origin` — no sandbox at all alongside the `allow-scripts` the
- * report requires — and `interceptClipboard` only takes the frame's Ctrl+C/X/V when the host
- * offered a clipboard, in the capture phase so the datagrid library never sees the keys.
+ * The frame's half of find-in-preview and the clipboard bridge. Done in the frame so it can
+ * keep an opaque origin; from the host it would need `allow-same-origin`. `interceptClipboard`
+ * takes Ctrl+C/X/V in the capture phase, ahead of the datagrid library.
  */
 function injectPreviewAgent(
   html: string,
@@ -2050,9 +1969,7 @@ function injectPreviewAgent(
     "  var send = function(msg) { msg.frameId = FRAME_ID; try { window.parent.postMessage(msg, '*'); } catch (_e) {} };",
     '',
     // ---- focus probes ----
-    // A datagrid keeps its position in the library rather than in the focused
-    // element, so its own inputs (the hidden copy textarea, an open cell editor)
-    // belong to the sheet path instead.
+    // A datagrid keeps its position in the library, so its own inputs take the sheet path.
     '  function activeInput() {',
     '    var el = document.activeElement;',
     "    if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return null;",
@@ -2070,9 +1987,8 @@ function injectPreviewAgent(
     '  };',
     '',
     // ---- clipboard ----
-    // The #UI script filters keystrokes on 'input' and commits the field on
-    // 'change'; a programmatic edit raises neither. An edit that has not produced
-    // a number is left uncommitted rather than reverted, so the text stays put.
+    // A programmatic edit raises neither the 'input' nor the 'change' the #UI script
+    // needs. A non-numeric edit is left uncommitted rather than reverted.
     '  var UI_NUMBER = /^[-+]?(\\d+\\.?\\d*|\\.\\d+)$/;',
     '  function commit(input) {',
     "    input.dispatchEvent(new Event('input', { bubbles: true }));",
@@ -2201,21 +2117,16 @@ function injectPreviewAgent(
     '  }',
     '',
     // ---- scroll ----
-    // Every render replaces the document (srcdoc forces a fresh browsing context), so
-    // where the user was has to be handed to the host and seeded back. Shared with
-    // vscode-calcpad, and used in every mode including the input form: the backend's
-    // #UI script restores the focused control and caret, but not the position, which
-    // has to survive content the page lays out long after load.
+    // srcdoc replaces the document every render, so the position is handed to the host
+    // and seeded back. The #UI script restores focus and caret, but not the position.
     scrollAnchorScript(
       "function(s) { send({ type: 'cpdScrollState', x: s.x, y: s.y, atEnd: s.atEnd, anchor: s.anchor }); }",
       scroll,
     ),
     '',
     // ---- readiness ----
-    // Tells the host to bring this document's buffer forward, sent from inside the document
-    // because the host cannot tell an iframe's load event for the render it just wrote from
-    // the one fired for its initial about:blank. Held (with a cap) until the scroll agent has
-    // applied the position it was seeded with.
+    // Tells the host to bring this buffer forward; the iframe's own load event also fires
+    // for about:blank. Held, with a cap, until the scroll agent has applied its position.
     "  window.addEventListener('load', function() {",
     "    var ready = function() { send({ type: 'cpdFrameReady' }); };",
     '    if (window.__calcpadScrollSettled) window.__calcpadScrollSettled(ready);',
@@ -2223,8 +2134,7 @@ function injectPreviewAgent(
     '  });',
     '',
     // ---- command channel ----
-    // Only the host embeds this document, so window.parent is the one sender that
-    // can reach here; commands from anywhere else are ignored.
+    // Only the host embeds this document, so window.parent is the only valid sender.
     "  window.addEventListener('message', function(e) {",
     '    if (e.source !== window.parent) return;',
     '    var d = e.data;',
@@ -2239,20 +2149,17 @@ function injectPreviewAgent(
   return insertHeadScript(html, body)
 }
 
-// Forward iframe console.* + uncaught errors to the parent window via
-// postMessage, tagged with groupId so the Output panel's "Preview Console"
-// channel can be split by the active editor group.
+// Forwards iframe console.* and uncaught errors to the host, tagged with groupId so the
+// Output panel can split them by editor group.
 function injectPreviewConsole(html: string, groupId: string): string {
   const maxMessages = maxPreviewConsoleMessages.value
   const gid = JSON.stringify(groupId)
   const body = [
-    // Every relayed line is clipped and counted here, inside the frame: a worksheet script
-    // logging a parsed data set, or logging in a loop, would otherwise push its whole heap
-    // across the boundary and into an Output channel that holds it.
+    // Clipped and counted inside the frame, or a logging loop pushes its whole heap
+    // across the boundary.
     consoleRelayGuardScript(maxMessages),
     '(function() {',
-    // Published before the patch guard so it is always set: the backend's #UI
-    // event script reads it to tag its messages with the owning group.
+    // Before the patch guard so it is always set; the #UI script tags messages with it.
     '  window.__calcpadGroupId = ' + gid + ';',
     '  if (window.__calcpadConsolePatched) return;',
     '  window.__calcpadConsolePatched = true;',
@@ -2278,9 +2185,8 @@ function injectPreviewConsole(html: string, groupId: string): string {
     '    var r = e.reason; var d = r && (r.stack || r.message) || String(r);',
     "    post('error', ['[Unhandled Rejection] ' + d]);",
     '  });',
-    // CSP violations and resource load failures, which the interception above cannot
-    // see: a refused fetch never throws, and a resource error does not bubble to the
-    // window listener. Shared with vscode-calcpad so both report alike.
+    // CSP violations and resource load failures: a refused fetch never throws, and a
+    // resource error does not bubble to the window listener.
     previewDiagnosticsScript('function(level, message) { post(level, [message]); }', maxMessages),
     "  console.log('CalcpadCE preview console interception initialized');",
     '})();',
@@ -2345,7 +2251,7 @@ function showConfirm(opts: {
   yesLabel?: string
   noLabel?: string
 }): Promise<ConfirmChoice> {
-  // If a previous prompt is still up, treat its answer as cancel.
+  // A prompt still up answers cancel.
   confirmState.value?.resolve('cancel')
   return new Promise(resolve => {
     confirmState.value = {
@@ -2363,6 +2269,29 @@ function resolveConfirm(choice: ConfirmChoice): void {
   if (!state) return
   confirmState.value = null
   state.resolve(choice)
+}
+
+// ---- External-link prompt ----
+interface OpenLinkState {
+  url: string
+  mode: 'browser' | 'file'
+  resolve: (ok: boolean) => void
+}
+
+const openLinkState = ref<OpenLinkState | null>(null)
+
+function showOpenLink(url: string, mode: OpenLinkState['mode'] = 'browser'): Promise<boolean> {
+  openLinkState.value?.resolve(false)
+  return new Promise(resolve => {
+    openLinkState.value = { url, mode, resolve }
+  })
+}
+
+function resolveOpenLink(ok: boolean): void {
+  const state = openLinkState.value
+  if (!state) return
+  openLinkState.value = null
+  state.resolve(ok)
 }
 
 // ---- In-app quick-pick dialog ----
@@ -2386,7 +2315,7 @@ function showQuickPick(opts: {
   placeholder?: string
   options: QuickPickOptionUi[]
 }): Promise<number | null> {
-  // If a previous prompt is still up, treat it as dismissed.
+  // A prompt still up counts as dismissed.
   quickPickState.value?.resolve(null)
   return new Promise(resolve => {
     quickPickState.value = {
@@ -2448,6 +2377,7 @@ defineExpose({
   setMaxOutputLines,
   setMaxPreviewConsoleMessages,
   showConfirm,
+  showOpenLink,
   showQuickPick,
   // tabs
   setTabs,

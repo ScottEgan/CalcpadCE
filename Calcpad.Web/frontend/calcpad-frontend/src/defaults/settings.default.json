@@ -65,7 +65,9 @@
             "showPageNumbers": true,
             "showDate": true,
             "documentTitle": "",
-            "dateTimeFormat": "M/d/yyyy h:mm tt"
+            "dateTimeFormat": "M/d/yyyy h:mm tt",
+            "headerFooterLines": "both",
+            "lineColor": "#b3b3b3"
         }
     }
 }

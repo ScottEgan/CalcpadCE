@@ -41,7 +41,6 @@ Launches that do not set the variable (a `dotnet run` during development, the sa
 - [POST /pdf/browser/install](#post-pdfbrowserinstall)
 - [POST /docx](#post-docx)
 - [POST /highlight](#post-highlight)
-- [POST /highlight-line](#post-highlight-line)
 - [POST /lint](#post-lint)
 - [POST /definitions](#post-definitions)
 - [POST /symbol-at-position](#post-symbol-at-position)
@@ -249,8 +248,9 @@ interface PdfOptions {
   marginBottom?: string;     // Bottom margin (default: "0.75in")
   marginLeft?: string;       // Left margin (default: "0.5in")
 
-  // Header and footer content. The bands are always drawn; these control what
-  // goes in them, and an empty/omitted value simply leaves that slot blank.
+  // Header and footer content. An empty/omitted value simply leaves that slot blank.
+  headerFooterLines?: string; // Separator lines drawn: "both" | "header" | "footer" | "none" (default: "both")
+  lineColor?: string;        // Separator line color, "#rrggbb" (default: "#b3b3b3")
   documentTitle?: string;    // Header, left, bold
   showPageNumbers?: boolean; // "Page n of m", footer right (default: true)
   showDate?: boolean;        // Timestamp, header right (default: true)
@@ -275,6 +275,19 @@ expected to ask the user and then call `POST /pdf/browser/install`.
   "message": "No Chromium-family browser was found. …",
   "canDownload": true,
   "downloadSizeMb": 180
+}
+```
+
+**503 — browser failed to start:** a browser was found but would not launch, even after the
+server retried once. Usually transient (for example, the browser is mid-update), so clients
+offer a retry rather than a download.
+
+```json
+{
+  "error": "Browser failed to start",
+  "code": "BROWSER_LAUNCH_FAILED",
+  "message": "The browser at '…' was found but failed to start (…). …",
+  "path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
 }
 ```
 
@@ -428,23 +441,6 @@ interface HighlightToken {
   ]
 }
 ```
-
----
-
-## POST /highlight-line
-
-Tokenize a single line of Calcpad source code (for incremental updates).
-
-**Request:**
-```typescript
-interface HighlightLineRequest {
-  line: string;          // The line content to tokenize
-  lineNumber?: number;   // Zero-based line number (default: 0)
-  includeText?: boolean; // Whether to include token text (default: false)
-}
-```
-
-**Response:** Same as `/highlight`
 
 ---
 
@@ -612,6 +608,13 @@ interface DefinitionsResponse {
   customUnits: CustomUnitDefinitionDto[];
   projectPath: string | null;  // Resolved absolute #ProjectPath, or null when undeclared/unresolvable
   libraryPath: string | null;  // Resolved absolute #LibraryPath, or null when undeclared/unresolvable
+  parseModes: ParseModeRangeDto[];  // Source lines in #html/#markdown mode, after macro and #include expansion
+}
+
+interface ParseModeRangeDto {
+  startLine: number;           // Zero-based first line
+  endLine: number;             // Zero-based last line, inclusive
+  mode: 'html' | 'markdown';   // Lines not covered by a range are Calcpad
 }
 
 interface MacroDefinitionDto {
@@ -1061,7 +1064,7 @@ GET /api/calcpad/snippets?category=Functions/Trigonometric
 
 4. **Error ranges** — For the linter, use `column` and `endColumn` to underline or highlight the problematic code region.
 
-5. **Incremental updates** — Use `/highlight-line` for real-time syntax highlighting as the user types, then periodically call `/lint` for full validation.
+5. **Incremental updates** — Re-send the whole document to `/highlight` as the user types, since tokens depend on state from earlier lines (macros, line continuations, `#html`/`#markdown` blocks), then periodically call `/lint` for full validation.
 
 6. **PDF / DOCX generation** — Call `/convert` to obtain HTML and pass it to `/pdf`, or call `/docx` directly with Calcpad source. Check `/pdf/health` to verify the PDF service is available.
 
@@ -1076,6 +1079,7 @@ GET /api/calcpad/snippets?category=Functions/Trigonometric
 | `CALCPAD_ENABLE_HTTPS` | `false` | Serves `https` instead of `http`. Only applies on the `CALCPAD_PORT` path |
 | `CALCPAD_API_TOKEN` | *(unset — unauthenticated)* | Per-launch token required in `X-Calcpad-Token` |
 | `CALCPAD_DETACHED` | *(unset)* | `1` disables the stdin-EOF watchdog and the default port file, so the server outlives its parent |
+| `CALCPAD_IGNORE_APPSETTINGS` | *(unset)* | `1` skips `appsettings*.json` and runs with built-in defaults. The desktop app sets this when the user ignores a malformed settings file |
 | `CALCPAD_LOG_LEVEL` | `warning` | Startup verbosity: `error`, `warning`, `information` or `verbose`. Covers ASP.NET's own logs too. Change it at runtime via [POST /log-level](#get-log-level-post-log-level); both hosts pass the user's setting here so startup entries honour it as well |
 | `CALCPAD_LOG_DIR` | *(executable-adjacent `logs/`)* | Where `CalcpadServer-{date}.log` is written. Hosts set this when the install directory is read-only |
 | `CALCPAD_HANG_THRESHOLD_SECONDS` | `60` | Seconds without a completed request before the hang watchdog writes a report |

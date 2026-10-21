@@ -6,21 +6,21 @@ The **CalcpadCE panel** is the tabbed sidebar that sits beside the editor.
 It shows what your document defines, lets you insert symbols and snippets, controls the calculation and plot settings, and drives export.
 Because every CalcpadCE frontend embeds the same panel, the tabs and settings are identical everywhere; only how you open it differs:
 
-*   **VS Code** — click the **CalcpadCE** icon in the activity bar. The view title bar has buttons to refresh and stop the background calculation engine.
-*   **Desktop app** — **View → Toggle Sidebar**.
+* **VS Code** — click the **CalcpadCE** icon in the activity bar. The view title bar has buttons to refresh and stop the background calculation engine.
+* **Desktop app** — **View → Toggle Sidebar**.
 
 ## Panel tabs
 
 The **CalcpadCE** view is organized into tabs:
 
 | Tab | What it does |
-| --- | --- |
+| --- | ------------ |
 | **Insert** | Searchable palette of symbols, built-in functions, and snippets. Click an item to insert it at the cursor. Includes an **Insert Image** button and a Symbol Palette. |
 | **TOC** | Live table of contents built from your document headings. Click a heading to jump to that line. |
 | **Settings** | All calculation, plot, unit, PDF export, theme, editor, and linter settings, plus named configurations. See [Settings Documentation](new-settings.md). |
 | **Variables** | Everything defined in the document — macros, variables, functions, and custom units — with types and signatures. Click an entry to insert it; each is searchable. |
 | **Properties** | Form-based editor for the [metadata comment](new-metadata-comments.md) at the cursor — descriptions, parameter/return types, per-file settings, lint-ignore, and per-document PDF export settings. Also allows editing #UI JSON, #settings JSON, and the UI Overrides line. |
-| **Formatting** | Prettify options and the **Prettify Document** button.|
+| **Formatting** | Prettify options and the **Prettify Document** button. |
 | **Export** | PDF / HTML / Word save actions, grouped by which rendering they capture, plus per-plot and ZIP image exports and the portable formats. See  [Exports Documentation](new-exports.md). |
 | **Errors** | Full list of calculation errors from the engine, each linking to its source line. |
 
@@ -39,10 +39,10 @@ An **Insert Image** button opens a file picker and inserts an `<img>` tag with t
 
 Lists everything the current document defines, grouped and counted:
 
-*   **Macros** — with parameters and defaults
-*   **Variables** — with inferred type
-*   **Functions** — with signature and return type
-*   **Custom Units** — with their definition
+* **Macros** — with parameters and defaults
+* **Variables** — with inferred type
+* **Functions** — with signature and return type
+* **Custom Units** — with their definition
 
 Entries are from the active document (and its `#include` files).  
 Click any entry to insert its name at the cursor.
@@ -64,9 +64,9 @@ While a [`#UI` input form](new-ui-mode.md) is open and there is no editor to scr
 
 Controls the **Prettify Document** command, which reformats the active file:
 
-*   **Indent style** — Tab or Space
-*   **Spaces per level** — used when the indent style is Space
-*   **Trim trailing whitespace**
+* **Indent style** — Tab or Space
+* **Spaces per level** — used when the indent style is Space
+* **Trim trailing whitespace**
 
 Set your options, then click **Prettify Document**.
 
@@ -75,7 +75,7 @@ Set your options, then click **Prettify Document**.
 Allows saving results from the CalcpadCE file into various formats. The tab is four collapsible sections — **HTML / PDF / Word**, **Write / Append**, **Plots** and **Portable Exports** — and remembers which ones you left open.
 
 | Section | Buttons |
-| --- | --- |
+| ------- | ------- |
 | **HTML / PDF / Word** | Save PDF… · Save Word… · Save HTML…, grouped by which rendering they capture — **Report**, **Preview**, **Input form**, **Unwrapped** |
 | **Write / Append** | **Write files** (when `#write`/`#append` run) and **Write to Disk** |
 | **Plots** | **Refresh**, a **Save…** per plot, and **Download all (ZIP)** |
@@ -95,7 +95,7 @@ See [Settings](new-settings.md) for the full reference.
 
 ## See also
 
-*   [Settings](new-settings.md)
-*   [Using the VS Code Extension](new-vscode-extension.md)
-*   [Using the Desktop App](new-desktop-app.md)
-*   [Exports](new-exports.md) · [Linter](new-linter.md) · [Metadata Comments](new-metadata-comments.md)
+* [Settings](new-settings.md)
+* [Using the VS Code Extension](new-vscode-extension.md)
+* [Using the Desktop App](new-desktop-app.md)
+* [Exports](new-exports.md) · [Linter](new-linter.md) · [Metadata Comments](new-metadata-comments.md)

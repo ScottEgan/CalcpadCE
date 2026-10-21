@@ -8,8 +8,7 @@
 
 param(
     [string]$Rid = 'win-x64',
-    [string]$Target = 'x86_64-pc-windows-msvc',
-    [string]$Bundles = 'msi,nsis'
+    [string]$Target = 'x86_64-pc-windows-msvc'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -22,7 +21,12 @@ Write-Host ">> Cargo target: $Target"
 Write-Host ">> .NET RID:     $Rid"
 
 New-Item -ItemType Directory -Force -Path $BinariesDir | Out-Null
-node $SyncScript "--target=$BinariesDir" "--rid=$Rid" '--configuration=Release' '--keep-skia-natives'
+node $SyncScript "--target=$BinariesDir" "--rid=$Rid" '--configuration=Release' '--keep-skia-natives' '--framework-dependent'
+if ($LASTEXITCODE -ne 0) { throw 'Sidecar publishing failed' }
+
+# After the sync: it prunes anything it does not recognise from the target.
+Copy-Item (Join-Path $RepoRoot 'THIRD-PARTY-NOTICES.txt') -Destination $BinariesDir -Force
+Copy-Item (Join-Path $RepoRoot 'LICENSE') -Destination (Join-Path $BinariesDir 'LICENSE.txt') -Force
 
 $srcExe  = Join-Path $BinariesDir 'Calcpad.Server.exe'
 $destExe = Join-Path $BinariesDir "calcpad-server-$Target.exe"
@@ -34,17 +38,8 @@ Write-Host ">> Sidecar staged at $destExe"
 
 Push-Location $ScriptDir
 try {
-    $TauriArgs = @(
-        'tauri', 'build',
-        '--config', 'src-tauri/tauri.windows.conf.json',
-        '--target', $Target,
-        '--bundles', $Bundles
-    )
-    if (-not $env:CALCPAD_SIGN_THUMBPRINT) {
-        $TauriArgs += '--no-sign'
-    }
-    & npx @TauriArgs
-    if ($LASTEXITCODE -ne 0) { throw "Tauri build failed ($LASTEXITCODE)" }
+    node desktop.mjs build --sidecar-staged --target $Target
+    if ($LASTEXITCODE -ne 0) { throw 'Desktop build failed' }
 }
 finally {
     Pop-Location

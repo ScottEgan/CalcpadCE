@@ -869,6 +869,8 @@ const SECTION_META: Record<string, { title: string; rows: Record<string, string>
       showDate: 'pdf date timestamp header',
       documentTitle: 'pdf document title header',
       dateTimeFormat: 'pdf timestamp date time format',
+      headerFooterLines: 'pdf header footer separator lines none both',
+      lineColor: 'pdf line color separator header footer',
       reset: 'reset pdf settings default'
     }
   },

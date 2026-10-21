@@ -19,8 +19,8 @@ Include chains can go up to 20 levels deep.
 
 Both bring in outside content, but they do different jobs:
 
-| | `#include` | `#read` |
-|--------|-----------|---------|
+| Aspect | `#include` | `#read` |
+| ------ | ---------- | ------- |
 | What it brings in | A CalcpadCE file | Data (CSV, Excel) |
 | When it happens | At parse time — the contents are inlined | At run time — the data is loaded into a variable |
 | Result | The included file becomes part of your document | You get a matrix or vector variable to compute with |
@@ -68,6 +68,7 @@ This is deliberate behavior, as resolving an included module's own saved values 
 **To share entered values across several files, write them out as data instead of relying on `#include`:**
 
 **module.cpd:**
+
 ```text
 #local
 #ProjectPath C:/path-to-my-project

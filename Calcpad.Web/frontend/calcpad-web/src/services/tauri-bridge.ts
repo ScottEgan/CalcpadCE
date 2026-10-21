@@ -44,6 +44,7 @@ import {
     fetchPdfBrowserStatus,
     installPdfBrowser,
     isBrowserNotFound,
+    isBrowserLaunchFailed,
     pdfResponseError,
     type PickedImage,
     type InlineImageBudget,
@@ -394,6 +395,19 @@ export class TauriMessageBridge extends BaseMessageBridge {
         // starts from a state where a browser actually exists.
         if (isBrowserNotFound(err))
             return await this.offerBrowserDownload(err.downloadSizeMb);
+
+        if (isBrowserLaunchFailed(err)) {
+            try {
+                return await dialogAsk(msg, {
+                    title: 'Browser failed to start',
+                    kind: 'warning',
+                    okLabel: 'Retry',
+                    cancelLabel: 'Close',
+                });
+            } catch {
+                return false;
+            }
+        }
 
         try {
             await dialogMessage(msg, { title: 'Failed to generate PDF', kind: 'error', okLabel: 'OK' });
@@ -761,15 +775,7 @@ export class TauriMessageBridge extends BaseMessageBridge {
         }
     }
 
-    // On Linux, prefer a native command that spawns xdg-open with the
-    // AppImage's LD_LIBRARY_PATH / GTK_* env stripped. plugin-opener inherits
-    // the parent's env, and inside an AppImage that env poisons every glib
-    // tool xdg-open forwards to (gio open, dbus-send, kfmclient...).
     private async openPathSafe(target: string): Promise<void> {
-        if (this._platform === 'linux') {
-            await invoke('open_path_native', { path: target });
-            return;
-        }
         await openPath(target);
     }
 
@@ -921,8 +927,8 @@ export class TauriMessageBridge extends BaseMessageBridge {
         }
     }
 
-    // No fall back to the resource dir: it sits outside the opener scope (and is
-    // read-only inside an AppImage anyway), so an open there would only fail.
+    // No fall back to the resource dir: it sits outside the opener scope (and can be
+    // read-only), so an open there would only fail.
     private getServerLogDir(): string | null {
         return this._serverLogDir || null;
     }
@@ -1002,8 +1008,9 @@ export class TauriMessageBridge extends BaseMessageBridge {
 
     private async browserInstallAdvice(): Promise<string> {
         if (this._platform === 'windows') {
-            return 'Install Microsoft Edge (preinstalled on recent Windows) or Google Chrome,\n'
-                + 'then set BROWSER_PATH in extensions/server/appsettings.json if it is not on PATH.';
+            return 'Install Microsoft Edge (preinstalled on recent Windows) or Google Chrome.\n'
+                + 'If it is installed somewhere unusual, set "BrowserPath" in the appsettings.json\n'
+                + 'next to Calcpad.Server.exe, using forward slashes (C:/...).';
         }
         if (this._platform === 'macos') {
             return 'Install Google Chrome from https://www.google.com/chrome/\n'

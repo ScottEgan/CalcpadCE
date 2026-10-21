@@ -20,6 +20,8 @@ jobs:
             triple: aarch64-unknown-linux-gnu
             arch: aarch64
     runs-on: ${{ matrix.runner }}
+    env:
+      CALCPAD_VERSION: ${{ inputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -27,7 +29,7 @@ jobs:
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -58,9 +60,6 @@ jobs:
             xdg-utils \
             file \
             wget
-
-      - name: Set version
-        run: node Calcpad.Web/frontend/scripts/bump-versions.mjs set ${{ inputs.version }}
 
       - name: Install frontend dependencies
         run: |
@@ -98,11 +97,19 @@ jobs:
           mkdir -p artifacts
           cp "$bundle"/deb/*.deb "artifacts/CalcpadCE-desktop-${{ inputs.version }}-${{ matrix.arch }}.deb"
           cp "$bundle"/rpm/*.rpm "artifacts/CalcpadCE-desktop-${{ inputs.version }}-${{ matrix.arch }}.rpm"
-          cp "$bundle"/appimage/*.AppImage "artifacts/CalcpadCE-desktop-${{ inputs.version }}-${{ matrix.arch }}.AppImage"
           if [ "${{ matrix.arch }}" = x86_64 ]; then
             cp Calcpad.Web/frontend/calcpad-desktop/packaging/arch/*.pkg.tar.zst \
               "artifacts/CalcpadCE-desktop-${{ inputs.version }}-x86_64.pkg.tar.zst"
           fi
+
+      - name: Verify third-party notices
+        run: |
+          set -- "artifacts/CalcpadCE-desktop-${{ inputs.version }}-${{ matrix.arch }}.deb" \
+                 "artifacts/CalcpadCE-desktop-${{ inputs.version }}-${{ matrix.arch }}.rpm"
+          if [ "${{ matrix.arch }}" = x86_64 ]; then
+            set -- "$@" "artifacts/CalcpadCE-desktop-${{ inputs.version }}-x86_64.pkg.tar.zst"
+          fi
+          ./tools/license-scan/verify-notices.sh "$@"
 
       - name: Upload deb
         uses: actions/upload-artifact@v7
@@ -114,12 +121,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           path: artifacts/CalcpadCE-desktop-${{ inputs.version }}-${{ matrix.arch }}.rpm
-          archive: false
-
-      - name: Upload AppImage
-        uses: actions/upload-artifact@v7
-        with:
-          path: artifacts/CalcpadCE-desktop-${{ inputs.version }}-${{ matrix.arch }}.AppImage
           archive: false
 
       - name: Upload Arch package

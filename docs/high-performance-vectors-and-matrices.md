@@ -10,14 +10,14 @@ Hp vectors and matrices are initially created by special functions, similar to s
 Functions for creating hp vectors:
 
 | Function | Description |
-| --- | --- |
+| -------- | ----------- |
 | `vector_hp(n)` | Creates an empty hp vector with length *n* |
 | `range_hp(x1; xn; s)` | Creates an hp vector from a range of values |
 
 Functions for creating hp matrices:
 
 | Function | Description |
-| --- | --- |
+| -------- | ----------- |
 | `matrix_hp(m; n)` | Creates an hp empty matrix with dimensions *m*⨯*n* |
 | `identity_hp(n)` | Creates an hp identity matrix with dimensions *n*⨯*n* |
 | `diagonal_hp(n; d)` | Creates an *n*⨯*n* hp diagonal matrix filled with value *d* |
@@ -61,7 +61,7 @@ Its complexity is $`O(m\sqrt{k})`$, where *m* is the number of nonzero elements 
 In CalcpadCE, the PCG method is used in the following functions:
 
 | Function | Description |
-| --- | --- |
+| -------- | ----------- |
 | `slsolve(A; b)` | Solves the symmetric linear system of equations $A\vec{x} = \vec{b}$ |
 | `smsolve(A; B)` | Solves the generalized symmetric matrix equation $AX = B$ |
 
@@ -87,7 +87,7 @@ It is applied at the tridiagonalization step, replacing the Householder’s refl
 In CalcpadCE, it is used for the same functions as the QL method, when the size of the matrix is \> 200:
 
 | Function | Description |
-|---|---|
+| -------- | ----------- |
 | `eigenvals(M; n_e)` | The first $n_e$ eigenvalues of matrix *M* |
 | `eigenvecs(M; n_e)` | The first $n_e$ eigenvectors of matrix *M* |
 | `eigen(M; n_e)` | The first $n_e$ eigenvalues and eigenvectors of matrix *M* |

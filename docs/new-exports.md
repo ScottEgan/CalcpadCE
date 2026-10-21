@@ -11,7 +11,7 @@ An export captures one of the four renderings.
 A plain "export to PDF" gives you the report.
 
 | Variant | Contents | Formats |
-| --- | --- | --- |
+| ------- | -------- | ------- |
 | **Report** *(default)* | `#pre` hidden, `#post` shown, entered `#UI` values applied | PDF, HTML, Word |
 | **Preview** | `#pre` and `#post` both shown, using the document's default `#UI` values. Gives the values entered into the input form when **Apply `#UI` Values in Preview** is on | PDF, HTML, Word |
 | **Input form** | Form view for inserting `#UI` input values, `#post` hidden, UI overrides applied instead of the document's defaults | PDF, HTML |
@@ -45,7 +45,7 @@ Declining just cancels that export.
 On Linux, if no browser is found, the app shows you the exact package to install for your distribution:
 
 | Distribution | Install command |
-|--------------|-----------------|
+| ------------ | --------------- |
 | Arch / CachyOS / Manjaro / EndeavourOS / Garuda | `sudo pacman -S chromium` |
 | Debian / Ubuntu / Mint | `sudo apt install chromium` |
 | Fedora / RHEL / Rocky / Alma | `sudo dnf install chromium` |
@@ -59,7 +59,7 @@ On Linux, if no browser is found, the app shows you the exact package to install
 - **Paper size** — Letter, Legal, Tabloid, Ledger, or A0–A6.
 - **Orientation** — portrait or landscape.
 - **Margins** — set each edge independently. A unit is required: `2cm`, `1.5cm`, `0.5in`, `12mm`.
-- **Header and footer** — The title, the timestamp, and the page number can each be set or hidden.
+- **Header and footer** — The title, the timestamp, and the page number can each be set or hidden. The separator lines can be turned off or colored as desired.
 
 Every option, with its accepted values, is listed under [Settings → PDF Export](new-settings.md#pdf-export).
 
@@ -83,7 +83,7 @@ This is part of CalcpadCE's [visibility directive system](new-visibility-directi
 The **Plots** section of the Export tab lists every plot the document emits, each with a thumbnail, filename, and size:
 
 | Button | Result |
-| --- | --- |
+| ------ | ------ |
 | **Refresh** | Re-runs the document and re-lists plots. Triggered automatically by a manual **Run Preview**. |
 | **Save…** (per plot) | Writes that plot to disk in its native format (PNG or SVG, depending on the **Vector Graphics** setting). |
 | **Download all (ZIP)** | Bundles every plot in one archive. |
@@ -93,7 +93,7 @@ The **Plots** section of the Export tab lists every plot the document emits, eac
 The **Write / Append** section controls the document's own file output:
 
 | Control | Result |
-| --- | --- |
+| ------- | ------ |
 | **Write files** | When `#write`/`#append` run: *Preview and Report*, *Report Only* (default), or *Manual*. |
 | **Write to Disk** | Runs the document as a report and writes its `#write`/`#append` files, whatever the setting above says. Being a report, it writes the values entered into the input form. |
 
@@ -108,14 +108,14 @@ Beyond saving a document as `.cpd`, CalcpadCE can produce two self-contained out
 Compiling produces a `.cpdz` from the document you are working on.
 It is a separate output rather than a rename: the file you have open keeps its own name and stays editable, so you can keep working on the `.cpd` and re-compile whenever you need a new copy to hand out.
 
-A compiled worksheet is fully portable: everything the document  depends on (#include, #read, and images) is written into it, so it runs with nothing beside it.
+A compiled worksheet is fully portable: everything the document depends on (#include, #read, and images) is written into it, so it runs with nothing beside it.
 
-#read data and images are capped at 20 MB in total (10 MB each), since it is all bundled in the .cpdz (which takes more system resources than reading from a file).
+`#read` data and images are capped at 20 MB in total (10 MB each), since it is all bundled in the .cpdz (which takes more system resources than reading from a file).
 The export will fail with a warning if this limit is exceeded.
 
 If a referenced file cannot be read, i.e. from a missing `.csv` or `#include`, the export is stopped and an error is given.
 
-`#write` and `#append` will write next to the compiled file when it runs instead of the original write path. 
+`#write` and `#append` will write next to the compiled file when it runs instead of the original write path.
 Duplicate filenames get -1, -2 appended to the filename to keep them separate.
 
 Opening a compiled worksheet gives you the input form with the CalcpadCE file locked.
@@ -128,7 +128,7 @@ If the recipient has to read or edit the calculation rather than just fill it in
 A portable package is the middle ground between a `.cpd`, which may rely on environment-specific paths, and a `.cpdz`, which runs anywhere but cannot be read or edited.
 It is a `.zip` holding the document as text beside a folder of everything it references, with each path rewritten to reach it there:
 
-```
+```text
 calc.zip
     calc.cpd
     calc.cpd.refs/
@@ -138,6 +138,7 @@ calc.zip
 ```
 
 Unzip it anywhere and open the `.cpd`, and it renders as it did in its original environment. This is very useful for archiving or backing up calculations that depend on library files that may change in the future.
+
 - An `#include`d file is packed with its own references, which are rewritten as well.
 - Images given as a web address or as inline data are left alone: they already resolve anywhere.
 - `#write` and `#append` will write next to the `.cpd` file when it runs instead of the original write path.
@@ -149,7 +150,7 @@ If a referenced file cannot be read, i.e. from a missing `.csv` or `#include`, t
 ## Troubleshooting
 
 | Symptom | Fix |
-|---------|-----|
+| ------- | --- |
 | PDF export fails or times out | Install a Chromium browser (see the table above) and verify the target file is not locked. In the desktop app, **Server → Show Server Log** shows the underlying error. |
 | Images missing in the PDF | Use paths the app can read; local images are embedded automatically before export. |
 | A compile or portable export is refused | It names the file it could not read, the size ceiling it hit, or the unresolved `{project}`/`{library}` root. Save the document first if it is untitled. |

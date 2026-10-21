@@ -26,6 +26,8 @@ namespace Calcpad.Server.Controllers
 
         /// <summary>Error code clients match on to offer the bundled-Chromium download.</summary>
         private const string BrowserNotFoundCode = "BROWSER_NOT_FOUND";
+        /// <summary>A browser exists but would not start; clients offer a retry.</summary>
+        private const string BrowserLaunchFailedCode = "BROWSER_LAUNCH_FAILED";
 
         public CalcpadController(CalcpadService calcpadService, PdfGeneratorService pdfService, ContentResolutionCache contentResolutionCache, IWebHostEnvironment environment)
         {
@@ -337,6 +339,17 @@ namespace Calcpad.Server.Controllers
 
                 return File(pdfBytes, "application/pdf", "document.pdf");
             }
+            catch (BrowserLaunchFailedException ex)
+            {
+                FileLogger.LogWarning("PDF generation blocked: browser failed to start", ex.Message);
+                return StatusCode(503, new
+                {
+                    error = "Browser failed to start",
+                    code = BrowserLaunchFailedCode,
+                    message = ex.Message,
+                    path = ex.BrowserPath
+                });
+            }
             catch (BrowserUnavailableException ex)
             {
                 FileLogger.LogWarning("PDF generation blocked: no usable browser", ex.Message);
@@ -490,28 +503,6 @@ namespace Calcpad.Server.Controllers
         }
 
         /// <summary>
-        /// Get syntax highlighting tokens for a single line (for incremental updates).
-        /// </summary>
-        [HttpPost("highlight-line")]
-        public IActionResult GetHighlightTokensForLine([FromBody] HighlightLineRequest request)
-        {
-            try
-            {
-                if (request.Line == null)
-                    return BadRequest("Line content is required");
-
-                var tokenizer = new CalcpadTokenizer();
-                var result = tokenizer.TokenizeSingleLine(request.Line, request.LineNumber);
-                return Ok(MapTokensToResponse(result.Tokens, request.IncludeText));
-            }
-            catch (Exception ex)
-            {
-                FileLogger.LogError("Highlight line request failed", ex);
-                return StatusCode(500, $"Error tokenizing line: {ex.Message}");
-            }
-        }
-
-        /// <summary>
         /// Lint Calcpad source code and return diagnostics (errors and warnings).
         /// </summary>
         [HttpPost("lint")]
@@ -598,7 +589,8 @@ namespace Calcpad.Server.Controllers
                         SourceFile = m.SourceFile,
                         Description = m.Description,
                         ParamTypes = m.ParamTypes,
-                        ParamDescriptions = m.ParamDescriptions
+                        ParamDescriptions = m.ParamDescriptions,
+                        Defaults = m.Defaults
                     }).ToList(),
 
                     Functions = staged.Stage3.FunctionsWithParams.Select(f =>
@@ -619,7 +611,8 @@ namespace Calcpad.Server.Controllers
                             SourceFile = f.SourceFile,
                             Description = f.Description,
                             ParamTypes = f.ParamTypes,
-                            ParamDescriptions = f.ParamDescriptions
+                            ParamDescriptions = f.ParamDescriptions,
+                            Defaults = f.Defaults
                         };
                     }).ToList(),
 
@@ -650,7 +643,15 @@ namespace Calcpad.Server.Controllers
                     }).ToList(),
 
                     ProjectPath = staged.Stage2.PathRoots?.Project,
-                    LibraryPath = staged.Stage2.PathRoots?.Library
+                    LibraryPath = staged.Stage2.PathRoots?.Library,
+
+                    ParseModes = SourceParseModes.Build(staged, request.Content.Count(c => c == '\n') + 1)
+                        .Select(r => new ParseModeRangeDto
+                        {
+                            StartLine = r.StartLine,
+                            EndLine = r.EndLine,
+                            Mode = r.Mode == ParseMode.Html ? "html" : "markdown"
+                        }).ToList()
                 };
 
                 return Ok(response);
@@ -1043,18 +1044,6 @@ namespace Calcpad.Server.Controllers
         public string? SourceFilePath { get; set; }
     }
 
-    public class HighlightLineRequest
-    {
-        /// <summary>The line content to tokenize</summary>
-        public string Line { get; set; } = string.Empty;
-
-        /// <summary>The zero-based line number</summary>
-        public int LineNumber { get; set; } = 0;
-
-        /// <summary>Whether to include the token text in the response</summary>
-        public bool IncludeText { get; set; } = false;
-    }
-
     public class HighlightResponse
     {
         /// <summary>List of tokens with position and type information</summary>
@@ -1169,6 +1158,24 @@ namespace Calcpad.Server.Controllers
 
         /// <summary>The resolved absolute `#LibraryPath`, under the same conditions as <see cref="ProjectPath"/>.</summary>
         public string? LibraryPath { get; set; }
+
+        /// <summary>
+        /// Source lines in #html or #markdown mode, after macros and includes are expanded.
+        /// Lines not covered are Calcpad.
+        /// </summary>
+        public List<ParseModeRangeDto> ParseModes { get; set; } = new();
+    }
+
+    public class ParseModeRangeDto
+    {
+        /// <summary>Zero-based first line of the range</summary>
+        public int StartLine { get; set; }
+
+        /// <summary>Zero-based last line of the range, inclusive</summary>
+        public int EndLine { get; set; }
+
+        /// <summary>"html" or "markdown"</summary>
+        public string Mode { get; set; } = string.Empty;
     }
 
     public class MacroDefinitionDto
@@ -1202,6 +1209,9 @@ namespace Calcpad.Server.Controllers
 
         /// <summary>User-provided descriptions per parameter</summary>
         public List<string>? ParamDescriptions { get; set; }
+
+        /// <summary>Default value per parameter; a null entry marks a required parameter</summary>
+        public List<string?>? Defaults { get; set; }
     }
 
     public class FunctionDefinitionDto
@@ -1253,6 +1263,9 @@ namespace Calcpad.Server.Controllers
 
         /// <summary>User-provided descriptions per parameter</summary>
         public List<string>? ParamDescriptions { get; set; }
+
+        /// <summary>Default value per parameter; a null entry marks a required parameter</summary>
+        public List<string?>? Defaults { get; set; }
     }
 
     public class VariableDefinitionDto

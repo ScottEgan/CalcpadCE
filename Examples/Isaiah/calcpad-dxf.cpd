@@ -80,7 +80,7 @@
 '
 #def renderDXF$(imgWidth$; id$)
 	'<div id="dxf-render-container-id$" style="position:fixed; left:-9999px; top:0; width:1px; height:1px; overflow:hidden;"></div>
-	'<!-- Hidden but still in flow, with the canvas's square ratio, so the box is the right
+	'<!-- Hidden but still in flow, with the canvas square ratio, so the box is the right
 	'     size from first layout. display:none would take no space and everything below
 	'     would jump when the drawing arrives, seconds after load. -->
 	'<img id="dxf-output-img-id$" style="visibility:hidden; width:'imgWidth$'px; max-width:100%; margin-top:30px; border:2px solid #ddd; border-radius:8px; background:#fff;" />

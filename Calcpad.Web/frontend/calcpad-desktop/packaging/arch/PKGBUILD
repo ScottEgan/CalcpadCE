@@ -11,7 +11,13 @@
 #   cd packaging/arch && makepkg -f
 
 pkgname=calcpad-ce
-pkgver=8.0.0.beta1
+_srcroot="$startdir/../.."
+case "$CARCH" in
+    x86_64)  _triple='x86_64-unknown-linux-gnu' ;;
+    aarch64) _triple='aarch64-unknown-linux-gnu' ;;
+esac
+pkgver=$(cat "$_srcroot/src-tauri/target/$_triple/release/version.txt")
+pkgver=${pkgver//[-+]/.}
 pkgrel=1
 pkgdesc='CalcpadCE desktop editor — Vue frontend with an embedded ASP.NET Core server'
 arch=('x86_64' 'aarch64')
@@ -26,13 +32,6 @@ sha256sums=('SKIP')
 # libSkiaSharp.so actually grows. !debug avoids a debug package with no symbols
 # to put in it.
 options=('!strip' '!debug')
-
-_srcroot="$startdir/../.."
-
-case "$CARCH" in
-    x86_64)  _triple='x86_64-unknown-linux-gnu' ;;
-    aarch64) _triple='aarch64-unknown-linux-gnu' ;;
-esac
 
 package() {
     local reldir="$_srcroot/src-tauri/target/$_triple/release"
@@ -55,7 +54,8 @@ package() {
     local libdir="$pkgdir/usr/lib/CalcpadCE"
     install -Dm755 -t "$libdir" "$bindir"/*.so
     install -Dm755 -t "$libdir" "$bindir/Calcpad.Server" "$bindir/createdump"
-    install -Dm644 -t "$libdir" "$bindir"/*.dll "$bindir"/*.json "$bindir/template.html"
+    install -Dm644 -t "$libdir" "$bindir"/*.dll "$bindir"/*.json "$bindir/template.html" \
+        "$bindir/THIRD-PARTY-NOTICES.txt" "$bindir/LICENSE.txt"
     install -Dm644 -t "$libdir/Fonts" "$bindir"/Fonts/*
     install -Dm644 -t "$libdir/bg" "$bindir"/bg/*
     install -Dm644 -t "$libdir/zh" "$bindir"/zh/*
@@ -72,4 +72,6 @@ package() {
 
     install -Dm644 "$_srcroot/../../../LICENSE" \
         "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 "$_srcroot/../../../THIRD-PARTY-NOTICES.txt" \
+        "$pkgdir/usr/share/licenses/$pkgname/THIRD-PARTY-NOTICES.txt"
 }

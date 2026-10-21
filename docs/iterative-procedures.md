@@ -121,7 +121,7 @@ $block{
 quadRoots(2; 3; -5)
 ```
 </td>
-<td><img src="./media/image28.png" width="400" /></td>
+<td><img src="./media/image28.png" width="400" alt="Output of the quadRoots function" /></td>
 </tr>
 </tbody>
 </table>
