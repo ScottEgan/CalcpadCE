@@ -179,6 +179,31 @@ namespace Calcpad.Tests.Highlighter.Prettifier
             Assert.Contains(payload, actual);
         }
 
+        [Fact]
+        public void DivsInsideHtmlBlock_AreLeftUntouched()
+        {
+            var source = Lf(
+                "'<div>",
+                "#html",
+                "<div>",
+                "  text",
+                "</div>",
+                "#end html",
+                "'</div>");
+            var expected = Lf(
+                "'<div>",
+                "\t#html",
+                "<div>",
+                "  text",
+                "</div>",
+                "\t#end html",
+                "'</div>");
+
+            var actual = CalcpadPrettifier.Prettify(source);
+
+            Assert.Equal(expected, actual);
+        }
+
         private static string Lf(params string[] lines) => string.Join("\n", lines);
 
         private static string CrLf(params string[] lines) => string.Join("\r\n", lines);
