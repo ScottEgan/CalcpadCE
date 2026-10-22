@@ -12,6 +12,8 @@ export interface PdfSettings {
   showPageNumbers: boolean;
   showDate: boolean;
   dateTimeFormat: string;
+  headerFooterLines: string;
+  lineColor: string;
 }
 
 const PAPER_FORMAT_OPTIONS: SettingOption[] = [
@@ -37,6 +39,8 @@ const PAPER_FORMAT_OPTIONS: SettingOption[] = [
 const CSS_LENGTH = /^\d*\.?\d+(cm|mm|in|pt|pc|px)$/i;
 const CSS_LENGTH_HINT = 'a length with a unit, e.g. 2cm, 0.5in, or 12mm';
 
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
 /**
  * Recognized keys for the `pdf` object of a metadata comment — the PDF export settings a
  * document can pin for itself, curated rather than exhaustive. Keep in sync with
@@ -57,6 +61,14 @@ export const PDF_SETTING_KEYS: MetadataSettingKey[] = [
   { key: 'showDate', label: 'Date', detail: 'Show the timestamp in the header', type: 'boolean', def: true },
   { key: 'documentTitle', label: 'Document title', detail: 'Header title (defaults to the file name)', type: 'string', def: '' },
   { key: 'dateTimeFormat', label: 'Timestamp format', detail: '.NET date/time format string, e.g. M/d/yyyy h:mm tt', type: 'string', def: 'M/d/yyyy h:mm tt' },
+  {
+    key: 'headerFooterLines', label: 'Show header/footer lines', detail: 'Which separator line(s) to draw', type: 'enum', def: 'both',
+    options: [
+      { value: 'both', label: 'Both' }, { value: 'header', label: 'Header only' },
+      { value: 'footer', label: 'Footer only' }, { value: 'none', label: 'None' },
+    ],
+  },
+  { key: 'lineColor', label: 'Header/Footer line color', detail: 'Header/footer separator line color as a hex code, default #b3b3b3', type: 'string', def: '#b3b3b3', pattern: HEX_COLOR, patternHint: 'a hex color, e.g. #b3b3b3' },
 ];
 
 /** Looks up a `pdf` key's spec. */
@@ -72,7 +84,7 @@ export function validatePdfValue(key: string, value: string | number | boolean):
   return validateCatalogValue(PDF_SETTING_KEYS, key, value);
 }
 
-// Sourced from PDF_SETTING_KEYS so the 10 literals aren't hand-copied in both files.
+// Sourced from PDF_SETTING_KEYS so the literals aren't hand-copied in both files.
 export const DEFAULT_PDF_SETTINGS: Readonly<PdfSettings> = PDF_SETTING_KEYS.reduce(
   (defaults, spec) => ({ ...defaults, [spec.key]: spec.def }),
   {} as Record<string, unknown>,

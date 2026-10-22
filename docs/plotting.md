@@ -31,18 +31,25 @@ The above command plots only one function of one variable at a time.
 There are also other formats that you can use:
 
 - Parametric Plot: both coordinates are functions of a parameter
+
   ```calcpad
   $Plot{x(t) | y(t) @ t = a:b}
   ```
+
 - Multiple: plots several functions on a single graph
+
   ```calcpad
   $Plot{y1(x) & y_2(x) & … @ x = a:b}
   ```
+
 - Multiple Parametric:
+
   ```calcpad
   $Plot{x1(t) | y_1(t) & x_2(t) | y_2(t) & … @ t = a:b}
   ```
+
 - Draws a 2D color map of a 3D surface, defined by f(*x*; *y*):
+
   ```calcpad
   $Map{f(x; y) @ x = a:b & y = c:d}
   ```
@@ -79,12 +86,12 @@ You can also add 3D effects to the graph by selecting the "**Shadows**" checkbox
 You can also specify light direction by the respective combo.
 Besides UI controls, you can specify these options by using variables at worksheet level, as follows:
 
-| Parameter Name | Description
-|----------------|------------
-| *PlotShadows*  | Draw surface plots with shadows
-| *PlotLightDir* | Direction to light source (0-7) clockwise:<br/>0 - North, 1 - NorthEast, 2 - East, 3 - SouthEast, 4 - South, 5 - SouthWest, 6 - West, 7 - NorthWest
-| *PlotPalette*  | The number of color palette to be used for surface plots (0-9); <img src="./media/Image%202.png" width="300" alt="Table showing the palette colors" />
-| *PlotSmooth*   | Smooth transition of colors (= 1) or isobands (= 0) for surface plots.
+| Parameter Name | Description |
+| -------------- | ----------- |
+| *PlotShadows* | Draw surface plots with shadows |
+| *PlotLightDir* | Direction to light source (0-7) clockwise:<br/>0 - North, 1 - NorthEast, 2 - East, 3 - SouthEast, 4 - South, 5 - SouthWest, 6 - West, 7 - NorthWest |
+| *PlotPalette* | The number of color palette to be used for surface plots (0-9); <img src="./media/Image%202.png" width="300" alt="Table showing the palette colors" /> |
+| *PlotSmooth* | Smooth transition of colors (= 1) or isobands (= 0) for surface plots. |
 
 ## Examples
 

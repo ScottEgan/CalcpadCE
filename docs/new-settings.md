@@ -6,9 +6,9 @@ In VS Code, do not use VS Code's own settings editor.
 ## Math
 
 | Setting | Values | Meaning |
-|---------|--------|---------|
+| ------- | ------ | ------- |
 | **Decimals** | 0–15 | Decimal places shown in results. |
-| **Angle Units** | Radians / Degrees / Gradians | Trigonometric angle setting. |
+| **Angle Units** | Degrees / Radians / Gradians | Trigonometric angle setting. |
 | **Complex Numbers** | on/off | Enable complex-number arithmetic. |
 | **Substitute Variables** | on/off | Substitute variable values into the output. |
 | **Format Equations** | on/off | *Professional* (on) renders equations in stacked math form; *Inline* (off) renders them on a single line. |
@@ -21,7 +21,7 @@ In VS Code, do not use VS Code's own settings editor.
 ## Plot
 
 | Setting | Values | Meaning |
-|---------|--------|---------|
+| ------- | ------ | ------- |
 | **Adaptive Plotting** | on/off | Adaptively sample plotted functions. |
 | **Screen Scale Factor** | 0.1–5 | Scale of rendered plots/images. |
 | **Plot Width / Height** | ≥1 (px) | Default size of the plot canvas. |
@@ -42,7 +42,7 @@ In VS Code, do not use VS Code's own settings editor.
 Your default page setup for [PDF export](new-exports.md#pdf-export).
 
 | Setting | Values | Meaning |
-|---------|--------|---------|
+| ------- | ------ | ------- |
 | **Paper size** | Letter / Legal / Tabloid / Ledger / A0–A6 | Page size. |
 | **Orientation** | Portrait / Landscape | Page orientation. |
 | **Top / Bottom / Left / Right margin** | a length with a unit, e.g. `2cm`, `0.5in`, `12mm` | Page margins. A bare number is rejected. |
@@ -50,6 +50,8 @@ Your default page setup for [PDF export](new-exports.md#pdf-export).
 | **Date** | on/off | The timestamp in the header. |
 | **Document title** | text | Header title. Empty falls back to the file name. |
 | **Timestamp format** | .NET format string, e.g. `M/d/yyyy h:mm tt` | How the header timestamp is written. |
+| **Show header/footer lines** | Both / Header only / Footer only / None | Which separator lines to draw. The header and footer text is unaffected. |
+| **Header/Footer line color** | hex color, e.g. `#b3b3b3` | Color of the header/footer separator lines. |
 
 **Reset PDF Settings** restores just this section, leaving everything else alone.
 
@@ -91,9 +93,9 @@ Pick the Monaco editor's font family from:
 **Write files** — when `#write` and `#append` are allowed to run. Lives in the **Export** tab beside the **Write to Disk** button, not the settings tab.
 
 | Value | When the files are written |
-| --- | --- |
-| Report Only *(default)* | On a report render only: the preview pane on **Report**, and a report export. The **Preview** view does not write (default setting because #write would otherwise use default input values in some cases).|
-| Preview and Report | On a **Preview** or **Report** render — so the files are rewritten as you type in with either view active. Best if you don't use input forms or have **Apply `#UI` Values in Preview** on.|
+| ----- | -------------------------- |
+| Report Only *(default)* | On a report render only: the preview pane on **Report**, and a report export. The **Preview** view does not write (default setting because #write would otherwise use default input values in some cases). |
+| Preview and Report | On a **Preview** or **Report** render — so the files are rewritten as you type in with either view active. Best if you don't use input forms or have **Apply `#UI` Values in Preview** on. |
 | Manual | Does not write on result rendering. Only writes when you press **Write to Disk**. |
 
 ## Linter
@@ -106,12 +108,12 @@ The lowest severity surfaced as a diagnostic.
 - **Open Logs Folder** — opens the folder holding server logs and the most recent crash dump.
 - **Log Level** — how much detail is logged, from *Error* (least) to *Verbose* (most), defaulting to **Warning**. One setting covers everything: the server's log file and the editor's own Output channels.
 
-  | Level | What is logged |
-  | --- | --- |
-  | Error | Only failures |
-  | Warning *(default)* | Failures plus potential problems, such as a missing browser for PDF export |
-  | Information | Adds events: startup, the bound URL, server restarts, shutdown, etc. |
-  | Verbose | Adds a line per request, on both the server and the editor. Useful for tracing problems |
+| Level | What is logged |
+| ----- | -------------- |
+| Error | Only failures |
+| Warning *(default)* | Failures plus potential problems, such as a missing browser for PDF export |
+| Information | Adds events: startup, the bound URL, server restarts, shutdown, etc. |
+| Verbose | Adds a line per request, on both the server and the editor. Useful for tracing problems |
 
 - **Max Output Lines (per channel)** *(web/desktop)* — 10–100000, default 1000. Number of lines retained in each Output panel channel before older lines are dropped. Lower values reduce memory use and keep the UI responsive when logs are noisy.
 - **Max Preview Size (MB)** — 1–256, default 24. A document that renders to more HTML than this is not shown; the preview shows a **Preview blocked** page giving the render's size and the limit instead. Showing it risks running the app out of memory. PDF, HTML, and Word export are unaffected as they don't go through the preview. Raise it to preview a very large document anyway.

@@ -99,16 +99,16 @@ The following formatting rules apply:
 
 Several examples of formatting in different cases are provided in the table below:
 
-| Code         | Output                             |
-|--------------|------------------------------------|
-| `x + 3`      | *x* + 3                            |
-| `x - 3`      | *x* – 3                            |
-| `3 * x`      | 3∙*x*                              |
-| `(x + 1)/3`  | (*x* + 1)/3 or $`\frac{x + 1}{3}`$ |
-| `x + 3 * y`  | *x* + 3∙*y*                        |
-| `sqr(x+3)`   | $\sqrt{x + 3}$                     |
-| `x_1^3`      | $x_1^3$                            |
-| `sin(x)`     | **sin**(*x*)                       |
+| Code | Output |
+| ---- | ------ |
+| `x + 3` | *x* + 3 |
+| `x - 3` | *x* – 3 |
+| `3 * x` | 3∙*x* |
+| `(x + 1)/3` | (*x* + 1)/3 or $`\frac{x + 1}{3}`$ |
+| `x + 3 * y` | *x* + 3∙*y* |
+| `sqr(x+3)` | $\sqrt{x + 3}$ |
+| `x_1^3` | $x_1^3$ |
+| `sin(x)` | **sin**(*x*) |
 
 Html formatting makes the report easier to read and check than the respective plain text.
 You can also insert additional Html code inside the comments that will affect the final appearance.

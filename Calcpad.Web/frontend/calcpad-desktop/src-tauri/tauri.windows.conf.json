@@ -8,12 +8,15 @@
   },
   "bundle": {
     "targets": ["msi", "nsis"],
+    "licenseFile": "../../../../LICENSE",
     "resources": {
       "binaries/*.dll": "./",
       "binaries/Calcpad.Server.deps.json": "./",
       "binaries/Calcpad.Server.runtimeconfig.json": "./",
       "binaries/Calcpad.Server.staticwebassets.endpoints.json": "./",
       "binaries/appsettings.json": "./",
+      "binaries/THIRD-PARTY-NOTICES.txt": "./",
+      "binaries/LICENSE.txt": "./",
       "binaries/Calcpad.Server.exe": "./",
       "binaries/template.html": "./",
       "binaries/Fonts/*": "./Fonts/",
@@ -23,22 +26,16 @@
     "windows": {
       "wix": {
         "language": "en-US",
-        "version": "8.0.0.1"
+        "fragmentPaths": ["../packaging/windows/dotnet.wxs"],
+        "featureRefs": ["DotNetPrerequisites"]
       },
       "nsis": {
-        "installMode": "perMachine"
+        "installMode": "both",
+        "installerHooks": "../packaging/windows/dotnet.nsh"
       },
-      "signCommand": {
-        "cmd": "powershell",
-        "args": [
-          "-NoProfile",
-          "-ExecutionPolicy",
-          "Bypass",
-          "-File",
-          "sign-windows.ps1",
-          "%1"
-        ]
-      }
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com",
+      "tsp": true
     }
   }
 }

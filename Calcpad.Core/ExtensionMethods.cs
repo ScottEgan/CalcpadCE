@@ -29,6 +29,26 @@ namespace Calcpad.Core
         public static CommentEnumerator EnumerateComments(this ReadOnlySpan<char> s) =>
             new(s);
 
+        /// <summary>Index of the tag-closing '>', skipping any inside a quoted attribute value, or -1.</summary>
+        internal static int TagEndIndex(this ReadOnlySpan<char> s)
+        {
+            var quote = '\0';
+            for (var i = 1; i < s.Length; ++i)
+            {
+                var c = s[i];
+                if (quote != '\0')
+                {
+                    if (c == quote)
+                        quote = '\0';
+                }
+                else if (c == '"' || c == '\'')
+                    quote = c;
+                else if (c == '>')
+                    return i;
+            }
+            return -1;
+        }
+
         public static void RemoveLastLineIfEmpty(this StringBuilder sb)
         {
             var len = sb.Length - 1;

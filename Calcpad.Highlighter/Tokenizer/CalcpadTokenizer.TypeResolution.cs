@@ -15,6 +15,8 @@ namespace Calcpad.Highlighter.Tokenizer
         private readonly HashSet<string> _definedMacros = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _definedUnits = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _localVariables = new(StringComparer.Ordinal);
+        // Only these accept keyword arguments
+        private readonly HashSet<string> _functionsWithDefaults = new(StringComparer.Ordinal);
 
         // Tracks #read keyword in all modes (not just Lint) so the next variable can be
         // recorded as a definition.
@@ -30,6 +32,7 @@ namespace Calcpad.Highlighter.Tokenizer
         private string _pendingVariableName = null;
         private int _pendingVariableLine = -1;
         private string _pendingFunctionName = null;
+        private bool _pendingHasDefault;
         private int _pendingFunctionLine = -1;
         private int _pendingFunctionParenDepth = 0;  // Track paren depth within function definition
 
@@ -42,6 +45,7 @@ namespace Calcpad.Highlighter.Tokenizer
             _definedFunctions.Clear();
             _definedMacros.Clear();
             _definedUnits.Clear();
+            _functionsWithDefaults.Clear();
             _expectingReadVariable = false;
         }
 
@@ -89,6 +93,9 @@ namespace Calcpad.Highlighter.Tokenizer
                     {
                         return TokenType.MacroParameter;
                     }
+                    // A keyword argument names a parameter of the called function.
+                    if (IsKeywordArgumentName(text))
+                        return TokenType.LocalVariable;
                     // Check if this is a local variable (function param, command scope var, etc.)
                     if (_state.IsInFunctionParams || _state.IsAfterAtOrAmp)
                     {
@@ -219,6 +226,10 @@ namespace Calcpad.Highlighter.Tokenizer
 
             switch (type)
             {
+                case TokenType.Variable when IsInDefaultValue():
+                case TokenType.Function when IsInDefaultValue():
+                    break;
+
                 case TokenType.Variable:
                     // This could be a variable definition - remember it
                     // If we later see "(" it becomes a function, if we see "=" it's confirmed
@@ -226,6 +237,7 @@ namespace Calcpad.Highlighter.Tokenizer
                     _pendingVariableLine = _state.Line;
                     _pendingFunctionName = null;
                     _pendingFunctionParenDepth = 0;
+                    _pendingHasDefault = false;
 
                     // Track #read variables as defined so subsequent uses resolve correctly.
                     if (_expectingReadVariable)
@@ -246,6 +258,7 @@ namespace Calcpad.Highlighter.Tokenizer
                     {
                         _pendingFunctionName = text;
                         _pendingFunctionLine = _state.Line;
+                        _pendingHasDefault = false;
                         _pendingVariableName = null;
                         _pendingVariableLine = -1;
                     }
@@ -254,6 +267,7 @@ namespace Calcpad.Highlighter.Tokenizer
                     {
                         _pendingFunctionName = _pendingVariableName;
                         _pendingFunctionLine = _pendingVariableLine;
+                        _pendingHasDefault = false;
                         _pendingVariableName = null;
                         _pendingVariableLine = -1;
                     }
@@ -268,6 +282,7 @@ namespace Calcpad.Highlighter.Tokenizer
                             _pendingFunctionName = _pendingVariableName;
                             _pendingFunctionLine = _pendingVariableLine;
                             _pendingFunctionParenDepth = 1;
+                            _pendingHasDefault = false;
                             _pendingVariableName = null;
                             _pendingVariableLine = -1;
                         }
@@ -287,8 +302,9 @@ namespace Calcpad.Highlighter.Tokenizer
                     }
                     else
                     {
-                        // Other brackets clear pending state
-                        ClearPendingDefinitions();
+                        // Brackets in a default value keep the pending definition
+                        if (_pendingFunctionName == null || _pendingFunctionParenDepth == 0)
+                            ClearPendingDefinitions();
                     }
                     break;
 
@@ -305,7 +321,15 @@ namespace Calcpad.Highlighter.Tokenizer
                     {
                         // Inside function definition parens, = is a default value separator, not assignment
                         if (_pendingFunctionName != null && _pendingFunctionParenDepth > 0)
+                        {
+                            if (_state.IsFunctionDefinition)
+                            {
+                                _functionsWithDefaults.Add(_pendingFunctionName);
+                                _pendingHasDefault = true;
+                            }
+
                             break;
+                        }
 
                         // Assignment operator - confirm definition or track reassignment
                         bool isFirstDef = false;
@@ -402,6 +426,9 @@ namespace Calcpad.Highlighter.Tokenizer
             }
         }
 
+        private bool IsInDefaultValue() =>
+            _pendingHasDefault && _pendingFunctionName != null && _pendingFunctionParenDepth > 0;
+
         private void ClearPendingDefinitions()
         {
             _pendingVariableName = null;
@@ -409,6 +436,24 @@ namespace Calcpad.Highlighter.Tokenizer
             _pendingFunctionName = null;
             _pendingFunctionLine = -1;
             _pendingFunctionParenDepth = 0;
+            _pendingHasDefault = false;
+        }
+
+        /// <summary>
+        /// True for an identifier followed by '=' inside a call that takes keyword arguments.
+        /// </summary>
+        private bool IsKeywordArgumentName(string text)
+        {
+            if ((_state.FunctionCallMask >> _state.BracketCount & 1) == 0)
+                return false;
+
+            var span = _state.Text.Span;
+            var i = _state.TokenStartColumn + text.Length;
+            while (i < span.Length && char.IsWhiteSpace(span[i]))
+                ++i;
+
+            return i < span.Length && span[i] == '=' &&
+                   (i + 1 >= span.Length || span[i + 1] != '=');
         }
 
         private bool IsKnownFunction(string name)

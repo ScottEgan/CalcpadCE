@@ -12,6 +12,7 @@ export type {
     HighlightToken,
     DefinitionsRequest,
     DefinitionsResponse,
+    ParseModeRange,
     MacroDefinition,
     FunctionDefinition,
     VariableDefinition,
@@ -90,6 +91,9 @@ export {
     BROWSER_NOT_FOUND,
     BrowserNotFoundError,
     isBrowserNotFound,
+    BROWSER_LAUNCH_FAILED,
+    BrowserLaunchFailedError,
+    isBrowserLaunchFailed,
     pdfResponseError,
     fetchPdfBrowserStatus,
     installPdfBrowser,
@@ -191,6 +195,8 @@ export { parseHeadings } from './services/headings';
 
 export {
     decodeExitCode,
+    SERVER_CONFIG_ERROR_EXIT_CODE,
+    extractConfigError,
     formatCrashReportPayload,
     buildCrashRecord,
 } from './services/crash-report';
@@ -231,19 +237,24 @@ export {
     couldCompleteDedentKeyword,
     calculateExpectedIndent,
 } from './text/auto-indent';
-export type { InlineFormat, CommentFormat } from './text/comment-formatting';
+export type { InlineFormat, CommentFormat, ParseMode } from './text/comment-formatting';
 export {
     HTML_INLINE,
     MARKDOWN_INLINE,
     getIndentLength,
     splitIndent,
     stripCommentPrefix,
+    stripCpdSnippetWrapper,
     lineHasCommentPrefix,
     isColumnInTextContext,
     getCommentPrefixInsertColumn,
     buildHeadingLine,
     buildParagraphLine,
     buildListLines,
+    getParseModeAt,
+    isHtmlCommentLine,
+    wrapHtmlComment,
+    unwrapHtmlComment,
 } from './text/comment-formatting';
 export type {
     MetadataCommentData,

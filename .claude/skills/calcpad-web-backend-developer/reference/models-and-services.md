@@ -47,7 +47,7 @@ public class PdfGenerateRequest
 }
 ```
 
-`PdfSettingsDto` lives in **Calcpad.Highlighter** (`HtmlComment/PdfSettingsDto.cs`), shared with the `pdf` metadata-comment parser so a document and the settings UI validate identically: `Format`, `Orientation`, the four margins, `ShowPageNumbers?`, `ShowDate?`, `DocumentTitle`, `DateTimeFormat`.
+`PdfSettingsDto` lives in **Calcpad.Highlighter** (`HtmlComment/PdfSettingsDto.cs`), shared with the `pdf` metadata-comment parser so a document and the settings UI validate identically: `Format`, `Orientation`, the four margins, `ShowPageNumbers?`, `ShowDate?`, `DocumentTitle`, `DateTimeFormat`, `HeaderFooterLines`, `LineColor`.
 
 The browser executable is never taken from the request — that would be an arbitrary-process-launch primitive. It resolves server-side from `BrowserPath` in `appsettings.json`, the `BROWSER_PATH` environment variable, or auto-detection.
 

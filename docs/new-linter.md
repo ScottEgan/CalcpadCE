@@ -13,7 +13,7 @@ The tables below group them by the kind of problem.
 ### Includes
 
 | Code | Severity | Meaning |
-|------|----------|---------|
+| ---- | -------- | ------- |
 | CPD-1101 | Error | Malformed `#include` statement |
 | CPD-1102 | Error | Missing `#include` filename |
 | CPD-1103 | Warning | Deprecated `#include` input values |
@@ -21,7 +21,7 @@ The tables below group them by the kind of problem.
 ### Macro definitions
 
 | Code | Severity | Meaning |
-|------|----------|---------|
+| ---- | -------- | ------- |
 | CPD-2201 | Error | Duplicate macro definition |
 | CPD-2202 | Error | Macro name must end with `$` |
 | CPD-2203 | Error | Macro parameter must end with `$` |
@@ -34,11 +34,12 @@ The tables below group them by the kind of problem.
 | CPD-2210 | Error | Invalid character in macro name |
 | CPD-2211 | Error | Invalid character in macro parameter |
 | CPD-2212 | Error | Duplicate macro parameter |
+| CPD-2213 | Error | Required parameter after optional parameter |
 
 ### Brackets and blocks
 
 | Code | Severity | Meaning |
-|------|----------|---------|
+| ---- | -------- | ------- |
 | CPD-3101 | Error | Unmatched opening parenthesis |
 | CPD-3102 | Error | Unmatched closing parenthesis |
 | CPD-3103 | Error | Unmatched opening square bracket |
@@ -49,18 +50,19 @@ The tables below group them by the kind of problem.
 ### Naming
 
 | Code | Severity | Meaning |
-|------|----------|---------|
+| ---- | -------- | ------- |
 | CPD-3201 | Error | Invalid variable name (must start with a letter) |
 | CPD-3202 | Error | Invalid function name |
 | CPD-3203 | Error | Function name conflicts with a built-in function |
 | CPD-3204 | Error | Variable name conflicts with a keyword |
 | CPD-3205 | Error | Variable name conflicts with a built-in constant |
 | CPD-3206 | Error | Function must have at least one parameter |
+| CPD-3207 | Error | Required parameter after optional parameter in function definition |
 
 ### Usage
 
 | Code | Severity | Meaning |
-|------|----------|---------|
+| ---- | -------- | ------- |
 | CPD-3301 | Error | Undefined variable |
 | CPD-3302 | Error | Function called with the wrong number of parameters |
 | CPD-3303 | Error | Undefined macro |
@@ -74,11 +76,13 @@ The tables below group them by the kind of problem.
 | CPD-3311 | Error | Empty parameter in a function call |
 | CPD-3312 | Information | Unused variable |
 | CPD-3313 | Error | Redefinition of existing function |
+| CPD-3314 | Error | Unknown keyword argument in a macro call |
+| CPD-3315 | Error | Unknown keyword argument in a function call |
 
 ### Semantics
 
 | Code | Severity | Meaning |
-|------|----------|---------|
+| ---- | -------- | ------- |
 | CPD-3401 | Error | Invalid operator usage |
 | CPD-3402 | Error | Unknown command name |
 | CPD-3403 | Error | Unknown directive |
@@ -102,7 +106,7 @@ The tables below group them by the kind of problem.
 ### Formatting
 
 | Code | Severity | Meaning |
-|------|----------|---------|
+| ---- | -------- | ------- |
 | CPD-3601 | Warning | Invalid format specifier |
 
 ## Suppressing diagnostics (lint-ignore)

@@ -140,7 +140,7 @@ namespace Calcpad.Server.Services
                             AllowDataWrite = write
                         };
                         parser.Parse(outputText, true, captureOpenXml);
-                        htmlResult = RemoveEmptyParagraphs(parser.HtmlResult);
+                        htmlResult = parser.HtmlResult;
                         errors.AddRange(parser.Errors);
                         if (captureOpenXml)
                             openXmlExpressions = parser.OpenXmlExpressions.ToList();
@@ -438,18 +438,6 @@ tan_angle = tan(angle°)";
 </html>";
         }
 
-        private string RemoveEmptyParagraphs(string htmlContent)
-        {
-            // Remove blank-line paragraphs (only content is &nbsp;). Debug mode adds
-            // per-line anchors (<p id="line-N" class="line">&nbsp;</p>) so the opening
-            // tag can carry attributes — match those too, not just a bare <p>.
-            return System.Text.RegularExpressions.Regex.Replace(
-                htmlContent,
-                @"<p\b[^>]*>&nbsp;</p>(\r?\n)?",
-                string.Empty
-            );
-        }
-
         private string WrapHtmlResult(string htmlContent, string theme = "light", bool enableUi = false)
         {
             // Use the comprehensive HTML template with theme support
@@ -517,7 +505,7 @@ tan_angle = tan(angle°)";
 
             var isLocal = false;
             var isUiOverridesComment = false;
-            var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+            var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
             var outputLines = new List<string>();
 
             foreach (var line in lines)

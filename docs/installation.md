@@ -60,7 +60,7 @@ You can use it to perform calculations in console mode:
 <img src="./media/image4.png" style="width:6.69306in;height:3.49583in" alt="Cli" />
 
 The Linux version does not include any GUI yet, but you can use some advanced code editors like Notepad++ and Sublime to write CalcpadCE code and Chromium to view the results.
-Instructions on how to install Sublime Text on Linux are provided here: 
+Instructions on how to install Sublime Text on Linux are provided here:
 
 <https://www.sublimetext.com/docs/linux_repositories.html>
 
@@ -78,9 +78,9 @@ sudo apt-get install sublime-text
 
 Then, goto <https://github.com/imartincei/CalcpadCE/tree/main/Setup/Linux/Sublime> and download the following files:
 
-- calcpad.sublime-build  
-- calcpad.sublime-completions  
-- calcpad.sublime-syntax  
+- calcpad.sublime-build
+- calcpad.sublime-completions
+- calcpad.sublime-syntax
 - Monokai.sublime-color-scheme
 
 Copy them to the Sublime Text user package folder:

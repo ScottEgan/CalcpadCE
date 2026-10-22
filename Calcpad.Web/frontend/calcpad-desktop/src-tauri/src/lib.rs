@@ -2,7 +2,7 @@ use std::backtrace::Backtrace;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -75,12 +75,24 @@ struct ServerState {
     // dying old sidecar (e.g. during restart) would clobber the freshly spawned
     // one's url/kill_tx.
     generation: AtomicU64,
+    // Why the server is down, for webviews that were not listening when it failed (boot, or a
+    // window opened later). Cleared on every spawn.
+    failure: Mutex<Option<ServerFailure>>,
+    last_crash: Mutex<Option<ServerCrashPayload>>,
+    // The user chose Ignore on a malformed appsettings.json; kept across auto-restarts.
+    ignore_settings: AtomicBool,
 }
 
 #[derive(Clone, Serialize)]
 struct ServerCrashPayload {
     code: Option<i32>,
     tail: String,
+}
+
+#[derive(Clone, Serialize)]
+struct ServerFailure {
+    error: String,
+    crash: Option<ServerCrashPayload>,
 }
 
 #[derive(Clone, Serialize)]
@@ -375,6 +387,20 @@ fn server_url(state: State<'_, ServerState>) -> Option<String> {
     state.url.lock().ok().and_then(|g| g.clone())
 }
 
+#[tauri::command]
+fn server_failure(state: State<'_, ServerState>) -> Option<ServerFailure> {
+    state.failure.lock().ok().and_then(|g| g.clone())
+}
+
+/// Records why the server is down, with the current generation's crash if there was one.
+fn record_failure(app: &AppHandle, error: String) {
+    let state: State<'_, ServerState> = app.state();
+    let crash = state.last_crash.lock().ok().and_then(|g| g.clone());
+    if let Ok(mut g) = state.failure.lock() {
+        *g = Some(ServerFailure { error, crash });
+    };
+}
+
 /// Hands the webview the token it must send as `X-Calcpad-Token` on every API call. Safe to
 /// expose: the webview is the app's own frontend served from `tauri://`, while worksheet
 /// content renders inside a sandboxed opaque-origin frame with no IPC access.
@@ -418,10 +444,20 @@ fn allow_document_dir(app: AppHandle, path: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+/// `ignore_settings` left out keeps the current mode, which is what auto-restart wants.
 #[tauri::command]
-async fn restart_server(app: AppHandle) -> Result<String, String> {
+async fn restart_server(app: AppHandle, ignore_settings: Option<bool>) -> Result<String, String> {
+    if let Some(ignore) = ignore_settings {
+        app.state::<ServerState>()
+            .ignore_settings
+            .store(ignore, Ordering::SeqCst);
+    }
     stop_sidecar(&app);
-    spawn_sidecar(&app).await.map_err(|e| e.to_string())
+    let result = spawn_sidecar(&app).await;
+    if let Err(err) = &result {
+        record_failure(&app, err.clone());
+    }
+    result
 }
 
 #[tauri::command]
@@ -575,56 +611,6 @@ async fn confirm_three_way(
     })
 }
 
-// Inside a linuxdeploy-generated AppImage, AppRun exports LD_LIBRARY_PATH so the bundled
-// binary can find its libs, and a spawned xdg-open would inherit it and crash any glib/dbus
-// tools it invokes. Strip those vars (plus the archived originals AppRun stashes).
-#[tauri::command]
-fn open_path_native(path: String) -> Result<(), String> {
-    #[cfg(target_os = "linux")]
-    {
-        // xdg-open has no `--` end-of-options marker — it is a shell script that would
-        // try to open a file literally named `--` — so a leading dash is rejected
-        // outright rather than escaped.
-        if path.starts_with('-') {
-            return Err(format!("refusing a path that reads as an option: {path}"));
-        }
-        let target = PathBuf::from(&path);
-        let mut cmd = std::process::Command::new("xdg-open");
-        cmd.arg(&target);
-        for key in [
-            "LD_LIBRARY_PATH",
-            "LD_PRELOAD",
-            "GTK_DATA_PREFIX",
-            "GTK_THEME",
-            "GTK_EXE_PREFIX",
-            "GTK_PATH",
-            "GTK_IM_MODULE_FILE",
-            "GDK_PIXBUF_MODULE_FILE",
-            "GIO_EXTRA_MODULES",
-            "GSETTINGS_SCHEMA_DIR",
-            "XDG_DATA_DIRS",
-            "PYTHONHOME",
-            "PYTHONPATH",
-            "PERLLIB",
-            "QT_PLUGIN_PATH",
-        ] {
-            let orig = format!("APPDIR_ORIG_{key}");
-            match std::env::var(&orig) {
-                Ok(v) if !v.is_empty() => { cmd.env(key, v); }
-                _ => { cmd.env_remove(key); }
-            }
-            cmd.env_remove(orig);
-        }
-        cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
-        cmd.spawn().map(|_| ()).map_err(|e| e.to_string())
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        let _ = path;
-        Err("open_path_native is Linux-only".to_string())
-    }
-}
-
 #[tauri::command]
 fn server_dir(app: AppHandle) -> Result<String, String> {
     // Directory where the sidecar was extracted at install time. Calcpad.Server
@@ -636,8 +622,8 @@ fn server_dir(app: AppHandle) -> Result<String, String> {
         .map_err(|e| e.to_string())
 }
 
-// Writable log directory shared with the .NET sidecar. On an AppImage the resource dir is a
-// read-only FUSE mount, so both sides point at app_data_dir/logs instead.
+// Writable log directory shared with the .NET sidecar. The resource dir can be read-only,
+// so both sides point at app_data_dir/logs instead.
 fn resolve_log_dir(app: &AppHandle) -> Option<PathBuf> {
     let dir = app.path().app_data_dir().ok()?.join("logs");
     let _ = std::fs::create_dir_all(&dir);
@@ -684,6 +670,12 @@ fn log_dir(app: AppHandle) -> Result<String, String> {
 async fn spawn_sidecar(app: &AppHandle) -> Result<String, String> {
     let state: State<'_, ServerState> = app.state();
     let my_gen = state.generation.fetch_add(1, Ordering::SeqCst) + 1;
+    if let Ok(mut g) = state.failure.lock() {
+        *g = None;
+    }
+    if let Ok(mut g) = state.last_crash.lock() {
+        *g = None;
+    }
 
     let parent_pid = std::process::id().to_string();
     // Explicit port-file path in temp so we don't depend on the child's CWD.
@@ -715,6 +707,18 @@ async fn spawn_sidecar(app: &AppHandle) -> Result<String, String> {
     eprintln!("[sidecar-timing] spawning {:?}", exe_path);
     let log_dir = resolve_log_dir(app);
     let mut command = tokio::process::Command::new(&exe_path);
+    #[cfg(windows)]
+    {
+        let runtime_root = exe_dir.join(".dotnet");
+        if runtime_root.join("dotnet.exe").is_file() {
+            let architecture = if cfg!(target_arch = "aarch64") {
+                "ARM64"
+            } else {
+                "X64"
+            };
+            command.env(format!("DOTNET_ROOT_{architecture}"), &runtime_root);
+        }
+    }
     command
         .args([
             "--no-exit-on-stdin-close",
@@ -735,6 +739,9 @@ async fn spawn_sidecar(app: &AppHandle) -> Result<String, String> {
     if let Some(level) = stored_log_level(app) {
         command.env("CALCPAD_LOG_LEVEL", level);
     }
+    if state.ignore_settings.load(Ordering::SeqCst) {
+        command.env("CALCPAD_IGNORE_APPSETTINGS", "1");
+    }
     // Every /api route on the child requires this header value, passed via env rather than argv
     // (see api_token()). ASPNETCORE_ENVIRONMENT is pinned because the child inherits our whole
     // environment: a developer with Development exported would otherwise get Swagger and the
@@ -748,8 +755,8 @@ async fn spawn_sidecar(app: &AppHandle) -> Result<String, String> {
     // never sees them. These vars must be set before the runtime boots, which is why they live
     // here rather than in Program.cs.
     //
-    // The dump goes to the writable logs/ dir because on an AppImage the resource dir beside
-    // the apphost is read-only. Fixed filename — each crash overwrites the last, matching the
+    // The dump goes to the writable logs/ dir because the resource dir beside the apphost can
+    // be read-only. Fixed filename — each crash overwrites the last, matching the
     // one-server-at-a-time model.
     let dump_dir = crash_dir()
         .map(|p| p.to_path_buf())
@@ -888,7 +895,7 @@ async fn spawn_sidecar(app: &AppHandle) -> Result<String, String> {
         tail: Arc<Mutex<String>>,
         saw_first: Arc<std::sync::atomic::AtomicBool>,
         log_tx: mpsc::Sender<ServerLogLine>,
-    ) {
+    ) -> tauri::async_runtime::JoinHandle<()> {
         tauri::async_runtime::spawn(async move {
             let mut lines = BufReader::new(stream).lines();
             loop {
@@ -924,10 +931,11 @@ async fn spawn_sidecar(app: &AppHandle) -> Result<String, String> {
                     Ok(None) | Err(_) => break,
                 }
             }
-        });
+        })
     }
+    let mut readers = Vec::new();
     if let Some(s) = stdout {
-        spawn_stream_reader(
+        readers.push(spawn_stream_reader(
             Box::new(s),
             "stdout",
             spawn_started,
@@ -936,10 +944,10 @@ async fn spawn_sidecar(app: &AppHandle) -> Result<String, String> {
             tail.clone(),
             saw_first_output.clone(),
             log_tx.clone(),
-        );
+        ));
     }
     if let Some(s) = stderr {
-        spawn_stream_reader(
+        readers.push(spawn_stream_reader(
             Box::new(s),
             "stderr",
             spawn_started,
@@ -948,7 +956,7 @@ async fn spawn_sidecar(app: &AppHandle) -> Result<String, String> {
             tail.clone(),
             saw_first_output.clone(),
             log_tx.clone(),
-        );
+        ));
     }
 
     // Wait task — owns the Child, races natural exit against the kill signal,
@@ -985,6 +993,13 @@ async fn spawn_sidecar(app: &AppHandle) -> Result<String, String> {
                 }
             }
             if !killed {
+                // Exit can beat the readers to the last lines (e.g. the server's CONFIG ERROR).
+                let _ = tokio::time::timeout(Duration::from_millis(500), async {
+                    for r in readers {
+                        let _ = r.await;
+                    }
+                })
+                .await;
                 let tail_snapshot = tail
                     .lock()
                     .ok()
@@ -1011,18 +1026,28 @@ async fn spawn_sidecar(app: &AppHandle) -> Result<String, String> {
                     tail = tail_snapshot,
                 );
                 write_crash_report("sidecar", &body);
-                let _ = app_for_wait.emit(
-                    "server-crashed",
-                    ServerCrashPayload {
-                        code: exit_code,
-                        tail: tail_snapshot,
-                    },
-                );
+                let payload = ServerCrashPayload {
+                    code: exit_code,
+                    tail: tail_snapshot,
+                };
+                if is_current {
+                    if let Ok(mut g) = state.last_crash.lock() {
+                        *g = Some(payload.clone());
+                    }
+                }
+                let _ = app_for_wait.emit("server-crashed", payload);
                 if let Some(tx) = tx_url.lock().ok().and_then(|mut g| g.take()) {
                     let _ = tx.send(Err(format!(
                         "sidecar exited before port ready (code {:?})",
                         exit_code
                     )));
+                } else if is_current {
+                    // Ran, then died: no spawn caller is left to record it.
+                    let reason = match exit_code {
+                        Some(code) => format!("server exited unexpectedly (exit code {code})"),
+                        None => "server exited unexpectedly".to_string(),
+                    };
+                    record_failure(&app_for_wait, reason);
                 }
             }
         });
@@ -1477,6 +1502,7 @@ pub fn run() {
         .manage(MenuState::default())
         .invoke_handler(tauri::generate_handler![
             server_url,
+            server_failure,
             server_token,
             restart_server,
             stop_server,
@@ -1486,7 +1512,6 @@ pub fn run() {
             draft_list,
             draft_read,
             draft_delete,
-            open_path_native,
             log_dir,
             take_pending_launch_files,
             allow_document_dir,
@@ -1566,6 +1591,7 @@ pub fn run() {
                             ms = unix_millis(),
                         );
                         write_crash_report("startup", &body);
+                        record_failure(&handle_for_spawn, err.clone());
                         let _ = handle_for_spawn.emit("server-startup-error", err);
                     }
                 }

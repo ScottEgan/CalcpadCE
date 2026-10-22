@@ -391,10 +391,10 @@ Command options:
     Extension is required.
     Any valid extension is allowed (except those for Excel), including **txt** and **csv**, as long as the data in the file is in text format;
 - `@R1C1:R2C2` data range in the input file \[optional\]:
-    - `R1C1` starting row and column indexes \[optional\]:
-    - `R1` row index: includes capital letter “R”, followed by the number of the row \[optional\];
-    - `C1`column index: capital letter “C”, followed by the number of the column \[optional\];
-    - `:R2C2` ending row (R2) and column (C2) indexes as above \[optional\];
+  - `R1C1` starting row and column indexes \[optional\]:
+  - `R1` row index: includes capital letter “R”, followed by the number of the row \[optional\];
+  - `C1`column index: capital letter “C”, followed by the number of the column \[optional\];
+  - `:R2C2` ending row (R2) and column (C2) indexes as above \[optional\];
 
     Indexing starts at **1**. You can skip any of the starting and ending row/column indexes.
     In this case, the default values of 1 and matrix dimensions are taken.
@@ -405,13 +405,13 @@ Command options:
 
 - `TYPE=R` The type of matrix/vector for structured storage \[optional\].  
     For the `#read` command, TYPE can be any of the following capital letters:
-    - `R` rectangular matrix (default);
-    - `C` column matrix;
-    - `D` diagonal matrix;
-    - `S` symmetric skyline matrix;
-    - `L` lower triangular matrix;
-    - `U` upper triangular matrix;
-    - `V` vector.
+  - `R` rectangular matrix (default);
+  - `C` column matrix;
+  - `D` diagonal matrix;
+  - `S` symmetric skyline matrix;
+  - `L` lower triangular matrix;
+  - `U` upper triangular matrix;
+  - `V` vector.
 
     If you want to use the high-performance version of the type, add **\_hp** after the type letter.
     For example: **R_hp** or **S_hp** .  
@@ -424,8 +424,8 @@ Command options:
 
     For the `#write` and `#append` commands TYPE can be one of the capital letters below:
 
-    - `Y` Yes, the matrix structure is used;
-    - `N` No, the matrix structure is not used (default);
+  - `Y` Yes, the matrix structure is used;
+  - `N` No, the matrix structure is not used (default);
 
     If “**N**” is selected, all matrices are stored as rectangular, regardless their type and internal structure.
     All elements after the last nonzero value on the row are skipped.
@@ -472,8 +472,8 @@ Command options:
 - `@Sheet1` the name of the target worksheet \[optional\].
     If omitted the first worksheet is used for existing files and Sheet1 is assumed for newly created worksheets.
 - `!A1:B2` target cell range \[optional\]:
-    - `A1` starting cell reference \[optional\], where A is the column name and 1 is the row index;
-    - `:B2` ending cell reference as above \[optional\];  
+  - `A1` starting cell reference \[optional\], where A is the column name and 1 is the row index;
+  - `:B2` ending cell reference as above \[optional\];  
     Column names start at **A**, and row numbers start at **1**. You can skip any of the starting and ending column/row references.
     In this case, data is read to the first and last nonempty cells, respectively.
     The starting cell references can be greater than the ending ones.

@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
-import { parseHeadings, DEFAULT_PDF_SETTINGS, extractPlotsFromHtml, buildZip, serializeMetadataComment, serializeSettingsDirective, hasMetadataContent, computeMetadataBlock, buildSourceDefinitionResolver, findUiDirectiveBlock, serializeUiDirective, DEFAULT_PREVIEW_SIZE_MB, DEFAULT_CONSOLE_MESSAGES_PER_DOCUMENT, coerceWriteMode, coerceLogLevel } from 'calcpad-frontend';
-import type { CalcpadError, ExtractedPlot, MetadataCommentBlock, MetadataCommentData, MetadataLayout, SettingsValues, UiDirectiveData, UiControl } from 'calcpad-frontend';
+import { parseHeadings, DEFAULT_PDF_SETTINGS, extractPlotsFromHtml, buildZip, serializeMetadataComment, serializeSettingsDirective, hasMetadataContent, computeMetadataBlock, buildSourceDefinitionResolver, findUiDirectiveBlock, serializeUiDirective, DEFAULT_PREVIEW_SIZE_MB, DEFAULT_CONSOLE_MESSAGES_PER_DOCUMENT, coerceWriteMode, coerceLogLevel, stripCpdSnippetWrapper } from 'calcpad-frontend';
+import type { ParseMode, CalcpadError, ExtractedPlot, MetadataCommentBlock, MetadataCommentData, MetadataLayout, SettingsValues, UiDirectiveData, UiControl } from 'calcpad-frontend';
 import { CalcpadSettingsManager } from './calcpadSettings';
 import { CalcpadInsertManager } from './calcpadInsertManager';
 import { VSCodeLogger } from './adapters';
@@ -34,6 +34,9 @@ export class CalcpadVueUIProvider implements vscode.WebviewViewProvider {
     public resolveUiControls?: () => Promise<UiControl[] | null>;
     /** Entered #UI values the panel rewrote, so the extension's in-memory ones follow. */
     public onUiOverridesEdited?: (documentUri: string, overrides: Record<string, string>) => void;
+
+    /** Parse mode at a document line. Set by the extension, so the server cache is used first. */
+    public getParseMode?: (document: vscode.TextDocument, line: number) => ParseMode;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -74,15 +77,20 @@ export class CalcpadVueUIProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async (data) => {
             this._outputChannel.appendLine(`Received message: ${data.type}`, 'verbose');
             switch (data.type) {
-                case 'insertText':
+                case 'insertText': {
                     const insertEditor = vscode.window.activeTextEditor;
                     if (insertEditor) {
                         const position = insertEditor.selection.active;
+                        // Markup snippets are written for Calcpad mode; an #html/#markdown
+                        // block takes the same content unwrapped and unquoted.
+                        const mode = this.getParseMode?.(insertEditor.document, position.line) ?? 'cpd';
+                        const text = mode === 'cpd' ? data.text : stripCpdSnippetWrapper(data.text);
                         await insertEditor.edit(editBuilder => {
-                            editBuilder.insert(position, data.text);
+                            editBuilder.insert(position, text);
                         });
                     }
                     break;
+                }
 
                 case 'insertImage':
                     vscode.commands.executeCommand('vscode-calcpad.insertImage');

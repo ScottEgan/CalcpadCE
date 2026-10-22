@@ -1,4 +1,4 @@
-using Calcpad.Highlighter.Snippets.Models;
+﻿using Calcpad.Highlighter.Snippets.Models;
 
 namespace Calcpad.Highlighter.Snippets.Data
 {
@@ -213,58 +213,110 @@ namespace Calcpad.Highlighter.Snippets.Data
             },
 
             // ============================================
-            // SVG GRAPHICS - CONTAINER
+            // SVG GRAPHICS - #cpd MODE (CONTAINER)
             // ============================================
             new SnippetItem
             {
                 Insert = "#val\n#hide\nw = 400\nh = 400\n#show\n'<svg viewbox=\"'0' '0' 'w' 'h'\" xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"font-size:16px; width:'w'px; height:'h'px\">\n'<rect x=\"'0'\" y=\"'0'\" width=\"'w'\" height=\"'h'\" style=\"stroke:black; stroke-width:1; fill:WhiteSmoke; fill-opacity:0.2; stroke-opacity:0.1\" />\n'<text x=\"'w/2'\" y=\"'h/2'\" text-anchor=\"middle\" fill=\"red\" style=\"font-size:32px;\">Your drawing goes here!</text>\n'</svg>\n#equ",
-                Description = "SVG container template",
+                Description = "SVG container template (#CPD)",
                 Category = "SVG"
             },
 
             // ============================================
-            // SVG GRAPHICS - SHAPES
+            // SVG GRAPHICS - #cpd MODE (SHAPES)
             // ============================================
             new SnippetItem
             {
                 Insert = "#hide\nx1 = 30\ny1 = 30\nx2 = 380\ny2 = 200\n#show\n'<line x1=\"'x1'\" y1=\"'y1'\" x2=\"'x2'\" y2=\"'y2'\" style=\"stroke:black; stroke-width:2; stroke-opacity:0.8\" />",
-                Description = "SVG line",
+                Description = "SVG line (#CPD)",
                 Category = "SVG"
             },
             new SnippetItem
             {
                 Insert = "#hide\nx = 80\ny = 60\nw = 300\nh = 200\n#show\n'<rect x=\"'x'\" y=\"'y'\" width=\"'w'\" height=\"'h'\" style=\"stroke:black; stroke-width:2; fill:yellow; fill-opacity:0.2; stroke-opacity:0.8\" />",
-                Description = "SVG rectangle",
+                Description = "SVG rectangle (#CPD)",
                 Category = "SVG"
             },
             new SnippetItem
             {
                 Insert = "#hide\ncx = 250\ncy = 150\nr = 70\n#show\n'<circle cx=\"'cx'\" cy=\"'cy'\" r=\"'r'\" style=\"stroke:black; stroke-width:2; fill:lime; fill-opacity:0.2; stroke-opacity:0.8\" />",
-                Description = "SVG circle",
+                Description = "SVG circle (#CPD)",
                 Category = "SVG"
             },
             new SnippetItem
             {
                 Insert = "#hide\ncx = 300\ncy = 320\nrx = 80\nry = 50\n#show\n'<ellipse cx=\"'cx'\" cy=\"'cy'\" rx=\"'rx'\" ry=\"'ry'\" style=\"stroke:black; stroke-width:2; fill:magenta; fill-opacity:0.1; stroke-opacity:0.8\" />",
-                Description = "SVG ellipse",
+                Description = "SVG ellipse (#CPD)",
                 Category = "SVG"
             },
             new SnippetItem
             {
                 Insert = "#hide\nx1 = 20','y1 = 40\nx2 = 60','y2 = 350\nx3 = 250','y3 = 300\nx4 = 360','y4 = 150\n#show\n'<polyline points=\"'x1','y1' 'x2','y2' 'x3','y3' 'x4','y4'\" style=\"stroke:black; stroke-width:2; fill:none; fill-opacity:0.2; stroke-opacity:0.8\" />",
-                Description = "SVG polyline (connected lines)",
+                Description = "SVG polyline (connected lines) (#CPD)",
                 Category = "SVG"
             },
             new SnippetItem
             {
                 Insert = "#hide\nx1 = 150','y1 = 20\nx2 = 10','y2 = 140\nx3 = 120','y3 = 360\nx4 = 280','y4 = 120\n#show\n'<polygon points=\"'x1','y1' 'x2','y2' 'x3','y3' 'x4','y4'\" style=\"stroke:black; stroke-width:2; fill:cyan; fill-opacity:0.2; stroke-opacity:0.8\" />",
-                Description = "SVG polygon (closed shape)",
+                Description = "SVG polygon (closed shape) (#CPD)",
                 Category = "SVG"
             },
             new SnippetItem
             {
                 Insert = "#hide\nx = 50\ny = 30\n#show\n'<text x=\"'x'\" y=\"'y'\" text-anchor=\"start\">text1</text>\n",
-                Description = "SVG text",
+                Description = "SVG text (#CPD)",
+                Category = "SVG"
+            },
+
+            // ============================================
+            // SVG GRAPHICS - #html MODE
+            // ============================================
+            new SnippetItem
+            {
+                Insert = "#html\n<svg viewbox=\"0 0 400 400\" xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"font-size:16px; width:400px; height:400px\">\n<rect x=\"0\" y=\"0\" width=\"400\" height=\"400\" style=\"stroke:black; stroke-width:1; fill:WhiteSmoke; fill-opacity:0.2; stroke-opacity:0.1\" />\n<text x=\"200\" y=\"200\" text-anchor=\"middle\" fill=\"red\" style=\"font-size:32px;\">Your drawing goes here!</text>\n</svg>\n#end html",
+                Description = "SVG container template (#HTML)",
+                Category = "SVG"
+            },
+            new SnippetItem
+            {
+                Insert = "<line x1=\"30\" y1=\"30\" x2=\"380\" y2=\"200\" style=\"stroke:black; stroke-width:2; stroke-opacity:0.8\" />",
+                Description = "SVG line (#HTML)",
+                Category = "SVG"
+            },
+            new SnippetItem
+            {
+                Insert = "<rect x=\"80\" y=\"60\" width=\"300\" height=\"200\" style=\"stroke:black; stroke-width:2; fill:yellow; fill-opacity:0.2; stroke-opacity:0.8\" />",
+                Description = "SVG rectangle (#HTML)",
+                Category = "SVG"
+            },
+            new SnippetItem
+            {
+                Insert = "<circle cx=\"250\" cy=\"150\" r=\"70\" style=\"stroke:black; stroke-width:2; fill:lime; fill-opacity:0.2; stroke-opacity:0.8\" />",
+                Description = "SVG circle (#HTML)",
+                Category = "SVG"
+            },
+            new SnippetItem
+            {
+                Insert = "<ellipse cx=\"300\" cy=\"320\" rx=\"80\" ry=\"50\" style=\"stroke:black; stroke-width:2; fill:magenta; fill-opacity:0.1; stroke-opacity:0.8\" />",
+                Description = "SVG ellipse (#HTML)",
+                Category = "SVG"
+            },
+            new SnippetItem
+            {
+                Insert = "<polyline points=\"20,40 60,350 250,300 360,150\" style=\"stroke:black; stroke-width:2; fill:none; fill-opacity:0.2; stroke-opacity:0.8\" />",
+                Description = "SVG polyline (connected lines) (#HTML)",
+                Category = "SVG"
+            },
+            new SnippetItem
+            {
+                Insert = "<polygon points=\"150,20 10,140 120,360 280,120\" style=\"stroke:black; stroke-width:2; fill:cyan; fill-opacity:0.2; stroke-opacity:0.8\" />",
+                Description = "SVG polygon (closed shape) (#HTML)",
+                Category = "SVG"
+            },
+            new SnippetItem
+            {
+                Insert = "<text x=\"50\" y=\"30\" text-anchor=\"start\">text1</text>",
+                Description = "SVG text (#HTML)",
                 Category = "SVG"
             }
         ];

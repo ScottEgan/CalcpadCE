@@ -1,4 +1,4 @@
-using Calcpad.Highlighter.Snippets.Models;
+﻿using Calcpad.Highlighter.Snippets.Models;
 
 namespace Calcpad.Highlighter.Snippets.Data
 {
@@ -48,6 +48,30 @@ namespace Calcpad.Highlighter.Snippets.Data
             StyleClose,
             "#end val");
 
+        // Seeded with the template's stock values, so it is a no-op until one is changed.
+        private static readonly string ReportTable = Lines(
+            "#val",
+            StyleOpen,
+            "'  table.bordered {",
+            "'    margin-top: 1em;",
+            "'    margin-bottom: 0.5em;",
+            "'  }",
+            "'  table.bordered th {",
+            "'    background-color: #F0F0F0;",
+            "'    border: solid 1pt #AAAAAA;",
+            "'    padding: 4pt 8pt;",
+            "'    min-width: 2em;",
+            "'    text-align: center;",
+            "'  }",
+            "'  table.bordered td {",
+            "'    border: solid 1pt #CCCCCC;",
+            "'    padding: 4pt 8pt;",
+            "'    min-width: 2em;",
+            "'    height: 1.6em;",
+            "'  }",
+            StyleClose,
+            "#end val");
+
         private static readonly string UiAllControls = Lines(
             "#val",
             StyleOpen,
@@ -80,6 +104,94 @@ namespace Calcpad.Highlighter.Snippets.Data
         private static readonly string UiReportLine =
             UiControl("p.boxed { border: 1px solid #cccccc; padding: 2px 4px; }");
 
+        // Markdown blocks render through Markdig, whose output the report template barely
+        // styles. Tables are scoped by thead/tbody, which Calcpad's own tables never emit.
+        private static readonly string MdBlockquote = Lines(
+            "#val",
+            StyleOpen,
+            "'  blockquote {",
+            "'    margin: 0.8em 0;",
+            "'    padding: 2px 12px;",
+            "'    border-left: 3px solid #9999aa;",
+            "'    color: #444455;",
+            "'  }",
+            StyleClose,
+            "#end val");
+
+        private static readonly string MdCode = Lines(
+            "#val",
+            StyleOpen,
+            "'  pre {",
+            "'    background: #f6f6f6;",
+            "'    border: 1pt solid #dddddd;",
+            "'    padding: 6px 10px;",
+            "'    overflow-x: auto;",
+            "'  }",
+            "'  code { background: #f2f2f2; padding: 0 2px; }",
+            "'  pre code { background: none; padding: 0; }",
+            StyleClose,
+            "#end val");
+
+        private static readonly string MdTable = Lines(
+            "#val",
+            StyleOpen,
+            "'  thead th {",
+            "'    background: #f0f0f0;",
+            "'    border: 1pt solid #aaaaaa;",
+            "'    padding: 4px 8px;",
+            "'    text-align: left;",
+            "'  }",
+            "'  tbody td { border: 1pt solid #cccccc; padding: 4px 8px; }",
+            StyleClose,
+            "#end val");
+
+        private static readonly string MdTaskList = Lines(
+            "#val",
+            StyleOpen,
+            "'  ul.contains-task-list { list-style: none; padding-left: 1.2em; }",
+            "'  li.task-list-item { margin: 2px 0; }",
+            "'  li.task-list-item input[type=\"checkbox\"] { margin-right: 6px; }",
+            StyleClose,
+            "#end val");
+
+        private static readonly string MdEmphasis = Lines(
+            "#val",
+            StyleOpen,
+            "'  ins { text-decoration: underline; text-decoration-color: #44aa77; }",
+            "'  del { color: #888888; }",
+            "'  hr { border: 0; border-top: 1pt solid #cccccc; margin: 1em 0; }",
+            StyleClose,
+            "#end val");
+
+        private static readonly string MdAll = Lines(
+            "#val",
+            StyleOpen,
+            "'  blockquote {",
+            "'    margin: 0.8em 0;",
+            "'    padding: 2px 12px;",
+            "'    border-left: 3px solid #9999aa;",
+            "'    color: #444455;",
+            "'  }",
+            "'  pre { background: #f6f6f6; border: 1pt solid #dddddd; padding: 6px 10px; overflow-x: auto; }",
+            "'  code { background: #f2f2f2; padding: 0 2px; }",
+            "'  pre code { background: none; padding: 0; }",
+            "'  thead th { background: #f0f0f0; border: 1pt solid #aaaaaa; padding: 4px 8px; text-align: left; }",
+            "'  tbody td { border: 1pt solid #cccccc; padding: 4px 8px; }",
+            "'  ul.contains-task-list { list-style: none; padding-left: 1.2em; }",
+            "'  li.task-list-item input[type=\"checkbox\"] { margin-right: 6px; }",
+            "'  ins { text-decoration: underline; text-decoration-color: #44aa77; }",
+            "'  del { color: #888888; }",
+            "'  hr { border: 0; border-top: 1pt solid #cccccc; margin: 1em 0; }",
+            StyleClose,
+            "#end val");
+
+        private const string MarkdownNote =
+            "Inside an `#html` or `#markdown` block, write the `<style>` element directly — no " +
+            "`\'` quotes and no `#val` wrapper. Those are only needed in Calcpad mode, where an " +
+            "unquoted line is an expression.\n\n" +
+            "Rules apply to the whole report, so a `.dark-theme` counterpart is needed for anything " +
+            "that sets a colour — see the template for the convention.";
+
         private const string StyleNote =
             "Pair it with a `style` class on the directive, which applies in Input mode only:\n\n" +
             "`#UI {\"style\": \"highlight\"} depth = 2m`\n\n" +
@@ -104,6 +216,22 @@ namespace Calcpad.Highlighter.Snippets.Data
                     "`body`, so they already scale and are not listed.\n\n" +
                     "The family is set to Georgia Pro, which is not bundled and must be installed on " +
                     "the machine viewing the report.",
+                Category = "CSS"
+            },
+            new SnippetItem
+            {
+                Insert = ReportTable,
+                Label = "Report Table",
+                Description = "Restyle the bordered report table",
+                Documentation =
+                    "For tables written by hand with `class=\"bordered\"` — the *HTML Table* snippet " +
+                    "inserts the skeleton. Seeded with the template\'s stock values, so it is a no-op " +
+                    "until a number is changed.\n\n" +
+                    "The class is not decoration only: Word export reads it to decide whether the " +
+                    "table keeps its borders, so dropping it changes the `.docx` as well as the " +
+                    "report.\n\n" +
+                    "Markdown tables are a separate case — Markdig gives them no class, so they are " +
+                    "reached through `thead`/`tbody` instead. See *Markdown Table*.",
                 Category = "CSS"
             },
             new SnippetItem
@@ -191,6 +319,91 @@ namespace Calcpad.Highlighter.Snippets.Data
                     "Report and every export but the input form. That element is a paragraph, so " +
                     "target it as `p.boxed`.\n\n" +
                     "`#UI {\"reportStyle\": \"boxed\"} P = 25kN`",
+                Category = "CSS"
+            },
+            new SnippetItem
+            {
+                Insert = MdAll,
+                Label = "Markdown Elements - All",
+                Description = "Style sheet covering what #markdown renders",
+                Documentation =
+                    "The report template styles headings, paragraphs and Calcpad\'s own output, but " +
+                    "leaves most of what Markdown produces on browser defaults. This covers the lot.\n\n" +
+                    "| Markdown | Element |\n" +
+                    "|---|---|\n" +
+                    "| `> quote` | `blockquote > p` |\n" +
+                    "| fenced block | `pre > code.language-*` |\n" +
+                    "| `` `code` `` | `code` |\n" +
+                    "| `---` | `hr` |\n" +
+                    "| `- [x] item` | `ul.contains-task-list > li.task-list-item > input` |\n" +
+                    "| pipe table | `table > thead > th`, `tbody > td` |\n" +
+                    "| `++ins++`, `~~del~~` | `ins`, `del` |\n\n" +
+                    "Tables are reached through `thead`/`tbody`, which Calcpad\'s own tables never " +
+                    "emit, so matrices and `#UI` datagrids are left alone.\n\n" +
+                    MarkdownNote,
+                Category = "CSS"
+            },
+            new SnippetItem
+            {
+                Insert = MdBlockquote,
+                Label = "Markdown Blockquote",
+                Description = "Style a > blockquote",
+                Documentation =
+                    "Markdig wraps the text in a paragraph, so the element is `blockquote > p`. The " +
+                    "template has no rule of its own, so without this a quote is an indent and " +
+                    "nothing else.\n\n" + MarkdownNote,
+                Category = "CSS"
+            },
+            new SnippetItem
+            {
+                Insert = MdCode,
+                Label = "Markdown Code Block",
+                Description = "Style fenced code blocks and inline code",
+                Documentation =
+                    "A fenced block is `<pre><code class=\"language-xxx\">`, taking the language from " +
+                    "the fence. The template sizes `code` at 9pt but gives it no background, so the " +
+                    "`pre code` rule clears the inline background inside a block.\n\n" +
+                    "Highlighting is not applied — the class is there for a stylesheet to target, " +
+                    "not a highlighter.\n\n" + MarkdownNote,
+                Category = "CSS"
+            },
+            new SnippetItem
+            {
+                Insert = MdTable,
+                Label = "Markdown Table",
+                Description = "Add borders to a pipe table",
+                Documentation =
+                    "The template sets `border-collapse: collapse` and padding but no borders, so a " +
+                    "pipe table renders borderless.\n\n" +
+                    "Scoped through `thead`/`tbody` rather than `table`, because Calcpad\'s own " +
+                    "matrices and `#UI` datagrids are tables too and emit neither.\n\n" + MarkdownNote,
+                Category = "CSS"
+            },
+            new SnippetItem
+            {
+                Insert = MdTaskList,
+                Label = "Markdown Task List",
+                Description = "Style - [x] task lists",
+                Documentation =
+                    "Markdig marks the list `contains-task-list` and each item `task-list-item`, then " +
+                    "emits a disabled `<input type=\"checkbox\">`. Dropping the bullet is what makes " +
+                    "the box read as the marker.\n\n" +
+                    "The boxes are always disabled — a rendered report is not a form. Use `#UI` with " +
+                    "`\"type\": \"checkbox\"` for one the reader can tick.\n\n" + MarkdownNote,
+                Category = "CSS"
+            },
+            new SnippetItem
+            {
+                Insert = MdEmphasis,
+                Label = "Markdown Emphasis Extras",
+                Description = "Style ++ins++, ~~del~~ and horizontal rules",
+                Documentation =
+                    "`#markdown` enables Markdig\'s emphasis extras: `++ins++`, `~~del~~`, `~sub~` " +
+                    "and `^sup^`.\n\n" +
+                    "`sub` and `sup` are left out on purpose — Calcpad uses both for subscripts and " +
+                    "exponents in every equation it renders, so a bare `sub`/`sup` rule restyles the " +
+                    "maths along with the prose. Target them through a wrapper if you need to.\n\n" +
+                    MarkdownNote,
                 Category = "CSS"
             },
         ];

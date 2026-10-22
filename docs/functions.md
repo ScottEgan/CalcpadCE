@@ -5,7 +5,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Trigonometric
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | `sin(x)` | sine |
 | `cos(x)` | cosine |
 | `tan(x)` | tangent = **sin**(*x*)/**cos**(*x*), for each *x* ≠ kπ, k=1, 2, 3… |
@@ -16,7 +16,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Hyperbolic
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | `sinh(x)` | hyperbolic sine = (e*x* - e-*x*)/2 |
 | `cosh(x)` | hyperbolic cosine = (e*x* + e-*x*)/2 |
 | `tanh(x)` | hyperbolic tangent = (e*x* - e-*x*)/(e*x* + e-*x*) |
@@ -27,7 +27,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Inverse Trigonometric
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | `asin(x)` | inverse sine, defined for -1 ≤ *x* ≤ 1 |
 | `acos(x)` | inverse cosine, defined for -1 ≤ *x* ≤ 1 |
 | `atan(x)` | inverse tangent |
@@ -39,7 +39,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Inverse Hyperbolic
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | `asinh(x)` | inverse hyperbolic sine = **ln**(*x* + √(*x*2 + 1)), defined for -∞ ≤ *x* ≤ +∞ |
 | `acosh(x)` | inverse hyperbolic cosine = **ln**(*x* + √(*x* + 1)·√(*x* – 1)), defined for *x* ≥ 1 |
 | `atanh(x)` | inverse hyperbolic tangent = 1/2·**ln**\[(1 + *x*)/(1 - *x*)\], for -1 < *x* < 1 |
@@ -50,7 +50,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Log/Exponential and Roots
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | `log(x)` | decimal logarithm (with base 10), for each *x* \> 0 |
 | `ln(x)` | natural logarithm (with base *e* ≈ 2.7183), for each *x* \> 0 |
 | `log_2(x)` | binary logarithm (with base 2), for each *x* \> 0 |
@@ -62,7 +62,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Rounding
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | `round(x)` | rounds to the nearest integer |
 | `floor(x)` | rounds to the smaller integer (towards -∞) |
 | `ceiling(x)` | rounds to the greater integer (towards +∞) |
@@ -71,7 +71,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Integer
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | `mod(x; y)` | the remainder of an integer division |
 | `gcd(x; y; z…)` | the greatest common divisor of several integers |
 | `lcm(x; y; z…)` | the least common multiple of several integers |
@@ -80,7 +80,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Complex
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | `re(a + bi)` | returns the real part only, **re**(a + b*i*) = a |
 | `im(a + bi)` | returns the imaginary part as a real number, **im**(a + b*i*) = b |
 | `abs(a + bi)` | complex modulus = **sqrt**(a2 + b2) |
@@ -90,7 +90,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Aggregate and Interpolation
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | $min(A; \vec{b}; c…)$ | the smallest of multiple values |
 | $max(A; \vec{b}; c…)$ | the greatest of multiple values |
 | $sum(A; \vec{b}; c…)$ | sum of multiple values |
@@ -106,7 +106,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Conditional and Logical
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | **if**(<*cond*>; <*value-if-true*>; <*value-if-false*>) | if the condition *cond* is satisfied, the function returns the first value, otherwise it returns the second value. The condition is satisfied when it evaluates to any non-zero number |
 | **switch**(<*cond1*>; <*value1*>; <*cond2*>; <*value2*>;…; <*default-value*>) | returns the value for which the respective condition is satisfied. Conditions are checked from left to right. If none is satisfied, it returns the default value in the end. |
 | `not(x)` | logical "not" |
@@ -117,7 +117,7 @@ CalcpadCE includes a library with common math functions, ready to use.
 ## Other
 
 | Name | Description |
-| -------- | - |
+| ---- | ----------- |
 | `abs(x)` | absolute value (modulus) of a real number \| *x* \| |
 | `sign(x)` | sign of a number = -1 if *x* \< 0; 1 if *x* \> 0; 0 if *x* = 0 |
 | `random(x)` | a random number between 0 and *x* |
@@ -158,19 +158,19 @@ Rounding of midpoint values with **round**() evaluates to the nearest integer aw
 The **floor**() function rounds to the smaller value (towards -∞). The **ceiling**() function rounds in the opposite direction to the larger value (towards +∞). Unlike **floor**(), **trunc**() rounds towards zero, which is equivalent to simply truncating the fractional part.
 Some examples for rounding of negative and positive numbers are provided in the tables below:
 
-**Positive**
+### Positive
 
 | Function | x | Result |
-| --- | --- | --- |
+| -------- | - | ------ |
 | round(x) | 4.5 | 5 |
 | floor(x) | 4.8 | 4 |
 | ceiling(x) | 4.2 | 5 |
 | trunc(x) | 4.8 | 4 |
 
-**Negative**
+### Negative
 
 | Function | x | Result |
-| --- | --- | --- |
+| -------- | - | ------ |
 | round(x) | -4.5 | -5 |
 | floor(x) | -4.8 | -5 |
 | ceiling(x) | -4.2 | -4 |

@@ -40,8 +40,8 @@ In **Input** and **Report**, a **Print PDF** button exports the report.
 The two directives split a document into the part that is filled in and the part that is read back.
 `#pre` is hidden in a report; `#post` is hidden while the form is on screen:
 
-| | `#pre` shown | `#post` shown | Entered `#UI` values applied |
-|---|---|---|---|
+| Mode | `#pre` shown | `#post` shown | Entered `#UI` values applied |
+| ---- | ------------ | ------------- | ---------------------------- |
 | **Preview** | yes | yes | no, unless a setting is changed |
 | **Input** | yes | no | yes |
 | **Report** | no | yes | yes |
@@ -73,7 +73,7 @@ Without it, the input properties are derived from the right-hand side.
 `#UI` is only allowed where the right-hand side is a plain value or a vector/matrix function by itself:
 
 | Right-hand side | Accepted | Example |
-|-----------------|----------|---------|
+| --------------- | -------- | ------- |
 | Number, with or without a unit | ✔ | `#UI L = 10m`, `#UI n = 4`, `#UI q = 3kN/m` |
 | Vector or matrix literal | ✔ | `#UI v = [1; 2; 3]`, `#UI M = [1; 2 \| 3; 4]` |
 | `vector()` / `matrix()` constructor | ✔ | `#UI Z = vector(5)`, `#UI G = matrix(r; c)` |
@@ -81,6 +81,7 @@ Without it, the input properties are derived from the right-hand side.
 | Text | ✘ | `#UI text = 'text'` |
 
 Some considerations:
+
 - Exponent notation is not valid: write the full number instead.
 - Saved values are matched to controls by variable name, so be careful when renaming variables — see [Editing a document that has saved values](#editing-a-document-that-has-saved-values).
 
@@ -104,7 +105,7 @@ They share the line's JSON properties but are saved and overridden separately.
 ## JSON properties
 
 | Property | Type | Applies to | Meaning |
-|----------|------|-----------|---------|
+| -------- | ---- | ---------- | ------- |
 | `type` | string | all | `entry`, `datagrid`, `dropdown`, `radio`, `checkbox`. Auto-detected when omitted |
 | `mode` | string | all | Only `number` is currently accepted; string inputs are planned but not yet supported |
 | `style` | string | all | CSS class applied to the input element |
@@ -194,7 +195,7 @@ The default whenever the right-hand side is a vector/matrix literal or a `vector
 
 Sizes computed from a variable or expression work too — `matrix(r; c)`, `matrix(len(x); len(y))` — the grid is sized from the value the line produced.
 
-A grid can use default values from any expression. 
+A grid can use default values from any expression.
 Whatever the line evaluates to fills the cells:
 
 ```text
@@ -255,7 +256,7 @@ Two properties attach CSS classes:
 Every control also carries a class of its own, which is what your class combines with:
 
 | Type | HTML Element | Base class |
-|------|---------|-----------|
+| ---- | ------------ | ---------- |
 | `entry` | `<input type="text">` | `calcpad-ui-input` |
 | `dropdown` | `<select>` | `calcpad-ui-dropdown` |
 | `radio` | `<span>` wrapping the buttons | `calcpad-ui-radio`, each button's `<label>` is `calcpad-ui-radio-label` |
@@ -296,7 +297,7 @@ Then name the classes on the directives:
 
 `depth` is highlighted in the form and unremarkable in the report; `P` is boxed in the report and an ordinary text box in the form; `q` gets both.
 
-Also, several classes can be listed at once — `"style": "highlight wide"` 
+Also, several classes can be listed at once — `"style": "highlight wide"`
 
 ### Inside a datagrid
 
@@ -407,7 +408,7 @@ Inside a loop each pass renders its own control, and each is entered separately:
 `#UI` problems are reported under `CPD-3415` by the linter and also appear at the offending line by the calculation engine when you run the document:
 
 | Message | Cause |
-|---------|-------|
+| ------- | ----- |
 | The `#UI` keyword requires a variable assignment. | The line assigns nothing |
 | `#UI` does not support expressions unless `'allowExpression'` is true. | The right-hand side is computed, not a value, and `allowExpression` is off |
 | String mode is not supported by the `#UI` keyword. | The variable ends with `$`, or `"mode"` is not `number` |

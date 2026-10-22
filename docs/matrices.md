@@ -15,8 +15,8 @@ CalcpadCE uses large vectors to contain the values.
 So, it does not store the extra zero elements for partially filled (banded) matrices.
 The indexing operator for each type is internally redefined in order to return directly zero when we try to read a value outside the matrix structure or bandwidth.
 
-| | |
-| ---- | ---- |
+| Matrix type | Indexing |
+| ----------- | -------- |
 | diagonal matrix | *M*\[*i*, *j*\] = *d*\[*i*\], if *i* = *j* and 0, if *i* ≠ *j*; |
 | column matrix | *M*\[*i*, *j*\] = *c*\[*i*\], if *j* = 1, otherwise – error; |
 | upper triangular matrix | *M*\[*i*, *j*\] = *r*i\[*j* – *i* + 1\], if *j* ≥ *i*, otherwise – 0; |
@@ -1186,7 +1186,7 @@ They replace the equality in the original functions while the rest of the behavi
 The possible suffixes are given in the table below:
 
 | suffix | mfind | hlookup | vlookup | operator |
-|--------|-------|---------|---------|---------------------|
+| ------ | ----- | ------- | ------- | -------- |
 | \_eq | **mfind_eq**(*M*; *x*) | **hlookup_eq**(*M*; *x*; $i_1$; $i_2$) | **vlookup_eq**(*M*; *x*; $i_1$; $i_2$) | = - equal |
 | \_ne | **mfind_ne**(*M*; *x*) | **hlookup_ne**(*M*; *x*; $i_1$; $i_2$) | **vlookup_ne**(*M*; *x*; $i_1$; $i_2$) | ≠ - not equal |
 | \_lt | **mfind_lt**(*M*; *x*) | **hlookup_lt**(*M*; *x*; $i_1$; $i_2$) | **vlookup_lt**(*M*; *x*; $i_1$; $i_2$) | < - less than |

@@ -16,7 +16,9 @@ namespace Calcpad.Highlighter.HtmlComment
         ShowPageNumbers,
         ShowDate,
         DocumentTitle,
-        DateTimeFormat
+        DateTimeFormat,
+        HeaderFooterLines,
+        LineColor
     }
 
     /// <summary>
@@ -42,6 +44,8 @@ namespace Calcpad.Highlighter.HtmlComment
         public const string MarginLeft = "0.5in";
         public const bool ShowPageNumbers = true;
         public const bool ShowDate = true;
+        public const string HeaderFooterLines = "both";
+        public const string LineColor = "#b3b3b3";
     }
 
     /// <summary>
@@ -58,6 +62,10 @@ namespace Calcpad.Highlighter.HtmlComment
     public sealed class PdfSettingsDto : DirectiveDto<PdfSettingsDto, PdfSettingKey>
     {
         private static readonly string[] Orientations = { "portrait", "landscape" };
+        public static readonly string[] HeaderFooterLineModes = { "both", "header", "footer", "none" };
+
+        public static readonly Regex HexColor =
+            new(@"^#[0-9a-f]{6}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>
         /// A CSS length as the headless browser accepts it for a page margin. A bare
@@ -77,6 +85,8 @@ namespace Calcpad.Highlighter.HtmlComment
         public bool? ShowDate { get; set; }
         public string DocumentTitle { get; set; }
         public string DateTimeFormat { get; set; }
+        public string HeaderFooterLines { get; set; }
+        public string LineColor { get; set; }
 
         protected override void Validate(List<DirectiveError<PdfSettingKey>> errors)
         {
@@ -88,6 +98,9 @@ namespace Calcpad.Highlighter.HtmlComment
             CheckMargin(errors, PdfSettingKey.MarginRight, "marginRight", MarginRight);
             CheckMargin(errors, PdfSettingKey.MarginBottom, "marginBottom", MarginBottom);
             CheckMargin(errors, PdfSettingKey.MarginLeft, "marginLeft", MarginLeft);
+            CheckOneOf(errors, PdfSettingKey.HeaderFooterLines, "headerFooterLines", HeaderFooterLines, HeaderFooterLineModes);
+            if (LineColor is not null && !HexColor.IsMatch(LineColor))
+                errors.Add(new(PdfSettingKey.LineColor, "'lineColor' must be a hex color, e.g. #b3b3b3"));
         }
 
         private static void CheckOneOf(List<DirectiveError<PdfSettingKey>> errors,

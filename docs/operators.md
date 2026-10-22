@@ -5,7 +5,7 @@ The following operators are supported by the CalcpadCE language:
 ## Arithmetic
 
 | Operator | Shortcut | Description |
-| --- | --- | --- |
+| -------- | -------- | ----------- |
 | ! | | factorial |
 | ^ | | exponentiation |
 | / | | floating point division |
@@ -19,7 +19,7 @@ The following operators are supported by the CalcpadCE language:
 ## Relational (Comparison)
 
 | Operator | Shortcut | Description |
-| --- | --- | --- |
+| -------- | -------- | ----------- |
 | ≡ | `==` | equal to |
 | ≠ | `!=` | unequal to |
 | < | | less than |
@@ -30,7 +30,7 @@ The following operators are supported by the CalcpadCE language:
 ## Logical
 
 | Operator | Shortcut | Description |
-| --- | --- | --- |
+| -------- | -------- | ----------- |
 | ∧ | `&&` | logical "AND" |
 | ∨ | `\|\|` | logical "OR" |
 | ⊕ | `^^` | logical "XOR" |
@@ -38,13 +38,13 @@ The following operators are supported by the CalcpadCE language:
 ## Complex
 
 | Operator | Shortcut | Description |
-| --- | --- | --- |
+| -------- | -------- | ----------- |
 | ∠ | `<<` | phasor A∠φ |
 
 ## Assignment
 
 | Operator | Shortcut | Description |
-| --- | --- | --- |
+| -------- | -------- | ----------- |
 | = | | assignment or definition of a variable, function or macro |
 | ← | `<*` | assignment to an outer level or global variable in block |
 

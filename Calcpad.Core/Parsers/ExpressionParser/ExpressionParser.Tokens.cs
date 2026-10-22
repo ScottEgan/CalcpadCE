@@ -95,19 +95,22 @@ namespace Calcpad.Core
             tokens.Add(token);
         }
 
+        private string SourceDirectory => string.IsNullOrEmpty(SourceFilePath)
+            ? null : System.IO.Path.GetDirectoryName(SourceFilePath);
+
+        /// <summary>Resolves path-root tokens in any &lt;img src&gt; the markup carries.</summary>
+        private string ExpandImages(string html, int line) =>
+            html.Contains("<img", StringComparison.OrdinalIgnoreCase)
+                ? ImageReferences.ExpandSources(html, _pathRoots, SourceDirectory,
+                    error => AppendError(html, error, line))
+                : html;
+
         private void ExpandImageSources(List<Token> tokens)
         {
-            var directory = string.IsNullOrEmpty(SourceFilePath)
-                ? null : System.IO.Path.GetDirectoryName(SourceFilePath);
             foreach (var token in tokens)
             {
-                if (token.Type == TokenTypes.Expression ||
-                    !token.Value.Contains("<img", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                var value = token.Value;
-                token.Value = ImageReferences.ExpandSources(value, _pathRoots, directory,
-                    error => AppendError(value, error, _currentLine));
+                if (token.Type != TokenTypes.Expression)
+                    token.Value = ExpandImages(token.Value, _currentLine);
             }
         }
 

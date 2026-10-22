@@ -48,6 +48,21 @@ namespace Calcpad.Server.Services
             : base(message, innerException) { }
     }
 
+    /// <summary>
+    /// A browser was found but would not start, even after a retry. Maps to
+    /// <c>BROWSER_LAUNCH_FAILED</c> so clients offer a retry rather than a download.
+    /// </summary>
+    public class BrowserLaunchFailedException : Exception
+    {
+        public string BrowserPath { get; }
+
+        public BrowserLaunchFailedException(string browserPath, string message, Exception? innerException = null)
+            : base(message, innerException)
+        {
+            BrowserPath = browserPath;
+        }
+    }
+
     /// <summary>Which browser the PDF pipeline would use right now, and whether a download is possible.</summary>
     public record BrowserStatus(bool Available, string Source, string? Path, bool DownloadAllowed, int DownloadSizeMb);
 
@@ -294,35 +309,35 @@ namespace Calcpad.Server.Services
 
                 try
                 {
-                    _browser = await Puppeteer.LaunchAsync(new LaunchOptions
-                    {
-                        Headless = true,
-                        ExecutablePath = executablePath,
-                        Args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
-                    }).ConfigureAwait(false);
+                    _browser = await LaunchBrowserAsync(executablePath).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception first)
                 {
-                    FileLogger.LogWarning("Browser launch failed", ex.Message);
-
-                    // Only fall back to a ChromeHeadlessShell that is already on disk, or
-                    // download one when the host has pre-approved it. An unattended download
-                    // here is what the desktop/VS Code clients now prompt for instead.
-                    var fallbackPath = FindDownloadedChromium();
-                    if (fallbackPath == null && IsDownloadAllowed())
-                        fallbackPath = await DownloadChromiumAsync().ConfigureAwait(false);
-
-                    if (fallbackPath == null || string.Equals(fallbackPath, executablePath, StringComparison.OrdinalIgnoreCase))
-                        throw new BrowserUnavailableException(
-                            $"Failed to launch the browser at '{executablePath}'. Install a Chromium-family browser or download the bundled Chromium.", ex);
-
-                    FileLogger.LogInfo("Falling back to downloaded ChromeHeadlessShell", fallbackPath);
-                    _browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                    // Launches can fail transiently, e.g. while the browser is mid-update.
+                    FileLogger.LogWarning("Browser launch failed; retrying once", DescribeLaunchFailure(executablePath, first));
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    try
                     {
-                        Headless = true,
-                        ExecutablePath = fallbackPath,
-                        Args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
-                    }).ConfigureAwait(false);
+                        _browser = await LaunchBrowserAsync(executablePath).ConfigureAwait(false);
+                        FileLogger.LogWarning("Browser launch succeeded on retry", executablePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        FileLogger.LogWarning("Browser launch failed again", DescribeLaunchFailure(executablePath, ex));
+
+                        // Only fall back to a ChromeHeadlessShell that is already on disk, or
+                        // download one when the host has pre-approved it. An unattended download
+                        // here is what the desktop/VS Code clients now prompt for instead.
+                        var fallbackPath = FindDownloadedChromium();
+                        if (fallbackPath == null && IsDownloadAllowed())
+                            fallbackPath = await DownloadChromiumAsync().ConfigureAwait(false);
+
+                        if (fallbackPath == null || string.Equals(fallbackPath, executablePath, StringComparison.OrdinalIgnoreCase))
+                            throw new BrowserLaunchFailedException(executablePath, LaunchFailedMessage(executablePath, ex), ex);
+
+                        FileLogger.LogWarning("Falling back to downloaded ChromeHeadlessShell", fallbackPath);
+                        _browser = await LaunchBrowserAsync(fallbackPath).ConfigureAwait(false);
+                    }
                 }
 
                 return _browser;
@@ -331,6 +346,31 @@ namespace Calcpad.Server.Services
             {
                 _browserLock.Release();
             }
+        }
+
+        // Two attempts plus the retry delay must finish inside the clients' 60 s PDF fetch timeout.
+        private const int BrowserLaunchTimeoutMs = 20_000;
+
+        private static Task<IBrowser> LaunchBrowserAsync(string executablePath) =>
+            Puppeteer.LaunchAsync(new LaunchOptions
+            {
+                Headless = true,
+                ExecutablePath = executablePath,
+                Timeout = BrowserLaunchTimeoutMs,
+                Args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
+            });
+
+        private static string DescribeLaunchFailure(string executablePath, Exception ex) =>
+            $"Path: {executablePath}\nExists: {File.Exists(executablePath)}\n{ex}";
+
+        private static string LaunchFailedMessage(string executablePath, Exception ex)
+        {
+            var reason = System.Text.RegularExpressions.Regex
+                .Replace(ex.Message.Replace("Failed to launch browser!", ""), @"\s+", " ").Trim();
+            if (reason.Length == 0) reason = "it exited without an error message";
+            return $"The browser at '{executablePath}' was found but failed to start ({reason}). "
+                + "This is often temporary, for example while the browser is updating. "
+                + "Try again, or set BrowserPath in appsettings.json to a different Chromium-family browser.";
         }
 
         /// <summary>
@@ -590,9 +630,14 @@ namespace Calcpad.Server.Services
 
         private byte[] EnhancePdf(byte[] pdfBytes, PdfSettingsDto options)
         {
+            var lines = (options.HeaderFooterLines ?? PdfSettingsDefaults.HeaderFooterLines).ToLowerInvariant();
+            bool headerLine = lines is "both" or "header";
+            bool footerLine = lines is "both" or "footer";
+
             using var inputStream = new MemoryStream(pdfBytes);
             var document = PdfReader.Open(inputStream, PdfDocumentOpenMode.Modify);
 
+            var ctx = SetupHeaderFooterContext(options.LineColor);
             for (int i = 0; i < document.PageCount; i++)
             {
                 var page = document.Pages[i];
@@ -601,8 +646,8 @@ namespace Calcpad.Server.Services
                 double width = page.Width.Point;
                 double height = page.Height.Point;
 
-                DrawHeader(gfx, width, height, options);
-                DrawFooter(gfx, width, height, i + 1, document.PageCount, options);
+                DrawHeader(gfx, width, ctx, headerLine, options);
+                DrawFooter(gfx, width, height, i + 1, document.PageCount, ctx, footerLine, options);
             }
 
             using var outputStream = new MemoryStream();
@@ -612,14 +657,21 @@ namespace Calcpad.Server.Services
 
         private readonly record struct HeaderFooterContext(double Margin, XPen LinePen, XSolidBrush GrayBrush);
 
-        private static HeaderFooterContext SetupHeaderFooterContext() => new(
+        private static HeaderFooterContext SetupHeaderFooterContext(string? lineColor) => new(
             Margin: 20,
-            LinePen: new XPen(XColor.FromArgb(179, 179, 179), 0.5),
+            LinePen: new XPen(ParseLineColor(lineColor), 0.5),
             GrayBrush: new XSolidBrush(XColor.FromArgb(77, 77, 77)));
 
-        private void DrawHeader(XGraphics gfx, double width, double height, PdfSettingsDto options)
+        private static XColor ParseLineColor(string? hex)
         {
-            var ctx = SetupHeaderFooterContext();
+            if (hex is null || !PdfSettingsDto.HexColor.IsMatch(hex))
+                hex = PdfSettingsDefaults.LineColor;
+            var rgb = Convert.ToInt32(hex[1..], 16);
+            return XColor.FromArgb((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
+        }
+
+        private void DrawHeader(XGraphics gfx, double width, HeaderFooterContext ctx, bool drawLine, PdfSettingsDto options)
+        {
             var font = new XFont("Helvetica", 10);
             var boldFont = new XFont("Helvetica", 12, XFontStyleEx.Bold);
             var smallFont = new XFont("Helvetica", 8);
@@ -631,7 +683,8 @@ namespace Calcpad.Server.Services
 
             // Separator line below header text
             double lineY = headerY + 25;
-            gfx.DrawLine(ctx.LinePen, margin, lineY, width - margin, lineY);
+            if (drawLine)
+                gfx.DrawLine(ctx.LinePen, margin, lineY, width - margin, lineY);
 
             // Document title (top-left, bold)
             if (!string.IsNullOrEmpty(options.DocumentTitle))
@@ -652,9 +705,8 @@ namespace Calcpad.Server.Services
         }
 
         private void DrawFooter(XGraphics gfx, double width, double height,
-            int pageNumber, int totalPages, PdfSettingsDto options)
+            int pageNumber, int totalPages, HeaderFooterContext ctx, bool drawLine, PdfSettingsDto options)
         {
-            var ctx = SetupHeaderFooterContext();
             var font = new XFont("Helvetica", 8);
             var centerFont = new XFont("Helvetica", 10);
 
@@ -663,7 +715,8 @@ namespace Calcpad.Server.Services
 
             // Separator line above footer
             double lineY = footerY - 5;
-            gfx.DrawLine(ctx.LinePen, margin, lineY, width - margin, lineY);
+            if (drawLine)
+                gfx.DrawLine(ctx.LinePen, margin, lineY, width - margin, lineY);
 
             // Right side: Page numbers
             if (options.ShowPageNumbers ?? PdfSettingsDefaults.ShowPageNumbers)

@@ -1,14 +1,14 @@
 import * as monaco from 'monaco-editor';
 import { createApp, nextTick } from 'vue';
 import App from './App.vue';
-import pkg from '../package.json';
 import CalcpadAppVue from 'calcpad-frontend/vue/components/CalcpadApp.vue';
 import { initMessaging } from 'calcpad-frontend/vue/services/messaging';
 import { discardMetadataDraft } from 'calcpad-frontend/vue/metadata-drafts';
 import { MessageBridge } from './services/message-bridge';
+import type { TauriServerManager } from './services/server-manager';
 import { WorkspaceStateStore, isResultMode, type ResultMode, type WorkspaceLayout } from './services/workspace-state';
 import { buildApiSettings } from 'calcpad-frontend/types/settings';
-import { ConnectionMonitor, setLogLevel, coerceLogLevel } from 'calcpad-frontend';
+import { ConnectionMonitor, setLogLevel, coerceLogLevel, stripCpdSnippetWrapper } from 'calcpad-frontend';
 import {
     findMetadataCommentBlock,
     serializeMetadataComment,
@@ -46,7 +46,7 @@ import {
 import { attachQuickTyper } from './editor/quick-type';
 import { attachOperatorReplacer } from './editor/operator-replacer';
 import { attachAutoIndenter } from './editor/auto-indent';
-import { registerFormattingCommands } from './editor/formatting-commands';
+import { registerFormattingCommands, getParseMode } from './editor/formatting-commands';
 import { registerFormatDocumentProvider } from './editor/format-document';
 import { setActiveDocumentKeyResolver, getActiveDocumentKey, type EditorBridge } from './editor/bridge';
 import { EditorGroup } from './editor/editor-group';
@@ -62,6 +62,9 @@ import './editor/workers';
 
 /** Runtime check: are we running inside a Tauri webview? */
 const isTauri = typeof (window as any).__TAURI_INTERNALS__ !== 'undefined';
+
+/** Link schemes a worksheet may ask to open outside the app. */
+const EXTERNAL_LINK_SCHEMES = /^(https?|file):/i;
 
 // Server URL: the ?server= query param, then VITE_SERVER_URL, then same origin.
 function getServerUrl(): string {
@@ -338,14 +341,14 @@ async function rgbaToPng(rgba: Uint8Array, width: number, height: number): Promi
 }
 
 /**
- * Native message box shown when the calculation server never becomes ready.
+ * Native message box shown when the calculation server could not start.
  * The editor itself keeps working; only server-backed features (preview,
  * linting, export) need it.
  */
 async function showServerBlockedDialog(details: string): Promise<void> {
     const { message: dialogMessage } = await import('@tauri-apps/plugin-dialog');
     const body =
-        "CalcpadCE's calculation server started but never became ready.\n\n"
+        "CalcpadCE's calculation server could not start.\n\n"
         + 'The editor still works, but preview, linting, and PDF/Word export '
         + 'need the server. Choose Server → Restart Server to try again.\n\n'
         + `Details: ${details}`;
@@ -361,14 +364,45 @@ async function showServerBlockedDialog(details: string): Promise<void> {
     }
 }
 
+async function showConfigInvalidDialog(details: string): Promise<'retry' | 'ignore' | null> {
+    const { message: dialogMessage } = await import('@tauri-apps/plugin-dialog');
+    const body =
+        "CalcpadCE's calculation server could not read its settings file.\n\n"
+        + `${details}\n\n`
+        + 'Fix the file, then choose Retry to load it again. Choose Ignore to start '
+        + 'the server with default settings.';
+    try {
+        const choice = await dialogMessage(body, {
+            title: 'Invalid appsettings.json',
+            kind: 'error',
+            buttons: { ok: 'Retry', cancel: 'Ignore' },
+        });
+        // Some platforms report the custom label, others the default button name.
+        return choice === 'Retry' || choice === 'Ok' ? 'retry' : 'ignore';
+    } catch {
+        // The Output panel carries the same message.
+        return null;
+    }
+}
+
+/** A Retry that fails the same way raises onConfigInvalid again, so this loops until resolved. */
+async function resolveConfigInvalid(manager: TauriServerManager, details: string): Promise<void> {
+    const choice = await showConfigInvalidDialog(details);
+    if (!choice) return;
+    try {
+        await manager.restart({ ignoreSettings: choice === 'ignore' });
+    } catch {
+        // restart() already logged it.
+    }
+}
+
 async function bootstrap(): Promise<void> {
     let serverUrl: string;
     // Secondary windows (File > New Window) share this process, the sidecar and the
     // stores, so the main window owns everything there can only be one of.
     let isPrimaryWindow = true;
     let windowLabel = 'main';
-    // The bundle's version, not package.json's, on desktop.
-    let appVersion = pkg.version;
+    const appVersion = import.meta.env.VITE_APP_VERSION;
     let bridge: MessageBridge | null = null;
     let tauriBridge: import('./services/tauri-bridge').TauriMessageBridge | null = null;
     let serverManager: import('./services/server-manager').TauriServerManager | null = null;
@@ -382,8 +416,6 @@ async function bootstrap(): Promise<void> {
     if (isTauri) {
         windowLabel = (await import('@tauri-apps/api/window')).getCurrentWindow().label;
         isPrimaryWindow = windowLabel === 'main';
-        try { appVersion = await (await import('@tauri-apps/api/app')).getVersion(); }
-        catch { /* falls back to package.json */ }
         // Tauri desktop: the Rust layer owns the Calcpad.Server sidecar
         // (spawn, kill on exit, port discovery). This manager just tracks
         // its URL and surfaces crashes to the Output panel.
@@ -397,16 +429,20 @@ async function bootstrap(): Promise<void> {
             pendingServerRawLogs.push({ line, stream });
         };
 
-        serverManager.onStartupBlocked = (details: string) => {
-            pendingServerLogs.push({ msg: `Server did not start — ${details}`, level: 'error' });
-            void showServerBlockedDialog(details);
-        };
+        // The server is shared, so one dialog is enough; the manager already logged the reason.
+        if (isPrimaryWindow) {
+            serverManager.onStartupBlocked = (details: string) => { void showServerBlockedDialog(details); };
+            const manager = serverManager;
+            serverManager.onConfigInvalid = (details: string) => { void resolveConfigInvalid(manager, details); };
+        }
 
         try {
             await serverManager.start();
         } catch (err) {
-            const msg = err instanceof Error ? (err.stack ?? err.message) : String(err);
-            pendingServerLogs.push({ msg: `[bootstrap] Server failed to start: ${msg}`, level: 'error' });
+            if (!serverManager.startFailureReported) {
+                const msg = err instanceof Error ? (err.stack ?? err.message) : String(err);
+                pendingServerLogs.push({ msg: `[bootstrap] Server failed to start: ${msg}`, level: 'error' });
+            }
             console.error('[bootstrap] Server failed to start:', err);
         }
         serverUrl = serverManager.getBaseUrl() || '';
@@ -1333,6 +1369,17 @@ async function bootstrap(): Promise<void> {
         }
         : undefined;
 
+    // Registered before the include opener, which is unshifted ahead of it and so still
+    // claims its own URIs first. Monaco's default would otherwise window.open() an http
+    // link and navigate the app window itself for any other scheme.
+    monaco.editor.registerLinkOpener({
+        open(resource) {
+            const url = resource.toString();
+            if (!EXTERNAL_LINK_SCHEMES.test(url)) return false;
+            return openExternalLink(url).then(() => true);
+        },
+    });
+
     if (tauriBridge) {
         const bridge = tauriBridge;
         // Shared by both openers below — the definition-provider's Ctrl+click/F12
@@ -1440,15 +1487,18 @@ async function bootstrap(): Promise<void> {
     activeBridge.onInsertText = (text: string) => {
         const selection = editor.getSelection();
         if (selection) {
-            const htmlInsert = selection.isEmpty()
-                ? null
-                : resolveHtmlSelectionInsert(text);
+            const parseMode = getParseMode(editor, activeBridge);
+            const htmlInsert = parseMode === 'cpd' && !selection.isEmpty()
+                ? resolveHtmlSelectionInsert(text)
+                : null;
             if (htmlInsert) {
                 wrapHtmlSelection(editor, selection, htmlInsert);
             } else {
+                // Markup snippets are written for Calcpad mode; an #html/#markdown block takes
+                // the same content without the #val wrapper or the ' quotes.
                 editor.executeEdits('calcpad-insert', [{
                     range: selection,
-                    text,
+                    text: parseMode === 'cpd' ? text : stripCpdSnippetWrapper(text),
                     forceMoveMarkers: true,
                 }]);
             }
@@ -1595,7 +1645,44 @@ async function bootstrap(): Promise<void> {
             }
             return;
         }
+
+        // A link in the rendered worksheet. The frame has already blocked the
+        // navigation; the scheme is re-checked here because the message crosses
+        // from untrusted content.
+        if (data.type === 'openExternal') {
+            if (!fromPreview) return;
+            void openExternalLink(String(data.url ?? ''));
+            return;
+        }
     });
+
+    /** Prompts with the target, then hands it to the OS. Shared by the preview and the editor. */
+    async function openExternalLink(url: string): Promise<void> {
+        if (!EXTERNAL_LINK_SCHEMES.test(url)) return;
+        const isFile = /^file:/i.test(url);
+        // A browser cannot act on a file:// URL, so there is nothing to offer.
+        if (isFile && !isTauri) return;
+        try {
+            // A malformed file: URL from the worksheet throws here and is reported below.
+            const target = isFile ? fileUrlToPath(url) : url;
+            if (!(await appInstance.showOpenLink(target, isFile ? 'file' : 'browser'))) return;
+            if (isTauri) {
+                const opener = await import('@tauri-apps/plugin-opener');
+                if (isFile) await opener.openPath(target);
+                else await opener.openUrl(url);
+            } else {
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }
+        } catch (e) {
+            appInstance.appendOutput('error', `Could not open ${url}: ${describeError(e)}`);
+        }
+    }
+
+    function fileUrlToPath(url: string): string {
+        const path = decodeURIComponent(new URL(url).pathname);
+        // Windows paths arrive as /C:/... from the URL form.
+        return /^\/[A-Za-z]:/.test(path) ? path.slice(1) : path;
+    }
 
     appInstance.appendOutput('info', `CalcpadCE Web started — server: ${serverUrl}`);
 
@@ -1638,8 +1725,10 @@ async function bootstrap(): Promise<void> {
     // serverManager.start() ran before the callbacks above existed, so seed from what it knows.
     // markStopped leaves polling suspended, which is right: only a user restart can help.
     if (serverManager && !serverManager.isRunning) {
-        connectionMonitor.markStopped('server did not start');
+        connectionMonitor.markStopped(serverManager.isConfigInvalid ? 'invalid appsettings.json' : 'server did not start');
     } else {
+        // A Retry/Ignore answered during boot can restart it before onUrlChanged was wired.
+        if (serverManager) activeBridge.api.setBaseUrl(serverManager.getBaseUrl());
         connectionMonitor.start();
     }
 
@@ -1908,14 +1997,12 @@ async function bootstrap(): Promise<void> {
         const [
             { listen: tauriListen },
             { getCurrentWindow },
-            { exit: processExit },
             tauriClipboard,
             { invoke: tauriInvoke },
             { exists: fileExists },
         ] = await Promise.all([
             import('@tauri-apps/api/event'),
             import('@tauri-apps/api/window'),
-            import('@tauri-apps/plugin-process'),
             import('@tauri-apps/plugin-clipboard-manager'),
             import('@tauri-apps/api/core'),
             import('@tauri-apps/plugin-fs'),
@@ -2238,6 +2325,11 @@ async function bootstrap(): Promise<void> {
             return true;
         };
 
+        async function openNewWindow(): Promise<void> {
+            try { await tauriInvoke('new_window'); }
+            catch (err) { appInstance.appendOutput('error', `Could not open a new window: ${err}`); }
+        }
+
         // ---- Per-group Tauri wiring (commands + drafts + drop) ----
         function wireGroupTauri(group: EditorGroup): void {
             const ed = group.editor;
@@ -2256,6 +2348,9 @@ async function bootstrap(): Promise<void> {
             });
             ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyN, () => {
                 group.tabs.newUntitled();
+            });
+            ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.KeyW, () => {
+                void openNewWindow();
             });
             ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => {
                 appInstance.togglePreview();
@@ -2589,8 +2684,7 @@ async function bootstrap(): Promise<void> {
                     break;
 
                 case 'new-window':
-                    try { await tauriInvoke('new_window'); }
-                    catch (err) { appInstance.appendOutput('error', `Could not open a new window: ${err}`); }
+                    await openNewWindow();
                     break;
 
                 case 'close-tab': {
@@ -2770,6 +2864,11 @@ async function bootstrap(): Promise<void> {
                 return;
             }
             if (!e.ctrlKey || e.metaKey) return;
+            if ((e.key === 'w' || e.key === 'W') && e.altKey && !e.shiftKey) {
+                e.preventDefault();
+                void openNewWindow();
+                return;
+            }
             // Ctrl+S / Ctrl+Shift+S — fallback when focus is outside the editor.
             if ((e.key === 's' || e.key === 'S') && !e.altKey) {
                 e.preventDefault();
@@ -2843,6 +2942,7 @@ async function bootstrap(): Promise<void> {
 
         // ---- Close-with-unsaved guard ----
         let isExiting = false;
+        let allowWindowClose = false;
 
         // Only a wedged webview should ever reach this cap.
         const CLOSE_WAIT_CAP_MS = 120_000;
@@ -2898,7 +2998,7 @@ async function bootstrap(): Promise<void> {
                 await new Promise(resolve => setTimeout(resolve, 200));
             }
             unlisten();
-            return !cancelled;
+            return !cancelled && await windowCount() === 1;
         }
 
         /** The sidecar, the stores and the process belong to the window that goes last. */
@@ -2910,11 +3010,11 @@ async function bootstrap(): Promise<void> {
                 try { await serverManager.dispose(); }
                 catch (e) { appInstance.appendOutput('debug', `serverManager.dispose() rejected: ${e}`); }
             }
-            // The store's own write is debounced, which processExit would outrun.
             try { await workspace.flush(); }
             catch (e) { appInstance.appendOutput('debug', `workspace.flush() rejected: ${e}`); }
-            appInstance.appendOutput('debug', 'Exit path: calling process.exit()');
-            void processExit(0);
+            appInstance.appendOutput('debug', 'Exit path: closing the final window');
+            allowWindowClose = true;
+            await getCurrentWindow().close();
         }
 
         async function windowCount(): Promise<number> {
@@ -2964,9 +3064,9 @@ async function bootstrap(): Promise<void> {
         }
 
         // Intercept the window close button so unsaved tabs get their save prompt
-        // before Tauri tears down the webview. tryExit() calls processExit() on
-        // confirmation; if the user cancels, the window stays open.
+        // before Tauri tears down the webview.
         await getCurrentWindow().onCloseRequested(async (event) => {
+            if (allowWindowClose) return;
             event.preventDefault();
             void tryExit();
         });

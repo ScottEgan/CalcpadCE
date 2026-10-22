@@ -94,7 +94,7 @@ Click the <img src="./media/image16.png" alt="" height="20"> button to redo.
 You can search for a certain text inside the code and replace it with another, if needed.
 Select the "**Edit/Find**" menu, click the <img src="./media/image17.png" alt="" height="20"> button or press "**Ctrl+F**". The "**Find And Replace**" dialog will appear.
 
-<img src="./media/image18.png" style="width:4.63665in;height:2.70839in" />
+<img src="./media/image18.png" style="width:4.63665in;height:2.70839in" alt="Find And Replace dialog" />
 
 Enter a word or phrase to search for and click "**Find Next**". The program starts from the current position and finds the first occurrence in the selected direction.
 If the searched phrase is found, it is highlighted, and the search is stopped.

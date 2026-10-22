@@ -441,9 +441,8 @@ Different suffixes refer to different comparison operators.
 They replace the equality in the original functions while the other behavior remains unchanged.
 The possible suffixes are given in the table below:
 
-|  |  |  |  |
-|----|----|----|----|
 | suffix | find | lookup | comparison operator |
+| ------ | ---- | ------ | ------------------- |
 | \_eq | **find_eq**($\vec{a}$; *x*; *i*) | **lookup_eq**($\vec{a}$; $\vec{b}$; *x*) | = - equal |
 | \_ne | **find_ne**($\vec{a}$; *x*; *i*) | **lookup_ne**($\vec{a}$; $\vec{b}$; *x*) | ≠ - not equal |
 | \_lt | **find_lt**($\vec{a}$; *x*; *i*) | **lookup_lt**($\vec{a}$; $\vec{b}$; *x*) | \< - less than |

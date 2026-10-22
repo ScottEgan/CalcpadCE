@@ -27,7 +27,7 @@ This is performed by adding special elements called "tags". Each tag is enclosed
 For example, if you want to make some text bold, you can use the following tags: <b\>**Bold text**</b\>. Even if you are not a professional programmer, you can easily learn some basic Html, to use with CalcpadCE:
 
 | Html code | Output |
-| --- | --- |
+| --------- | ------ |
 | `<h3>Heading 3</h3>` | <span style="font-size:2.5em;">Heading 3</span> |
 | `<h4>Heading 4</h4>` | <span style="font-size:2em;">Heading 4</span> |
 | `<h5>Heading 5</h5>` | <span style="font-size:1.5em;">Heading 5</span> |
@@ -157,7 +157,7 @@ are not fully supported.
 You can use the following syntax elements:
 
 | Markdown code | Html code | Output |
-| --- | --- | --- |
+| ------------- | --------- | ------ |
 | `### Heading 3` | `<h3>Heading 3</h3>` | Heading 3 |
 | `#### Heading 4` | `<h4>Heading 4</h4>` | Heading 4 |
 | `##### Heading 5` | `<h5>Heading 5</h5>` | Heading 5 |
@@ -172,7 +172,7 @@ You can use the following syntax elements:
 | `x^superscript^` | `x<sup>superscript</sup>` | x<sup>superscript</sup> |
 | `x~subscript~` | `x<sub>subscript</sub>` | x<sub>subscript</sub> |
 | `` `Code` `` | `<code>Code</code>` | `Code` |
-| `[Link](https://example.com)` | `<a href="https://example.com">Link</a>` | [Link](https://example.com) |
+| `[Example site](https://example.com)` | `<a href="https://example.com">Example site</a>` | [Example site](https://example.com) |
 | `![Image](image.jpg)` | `<img src="image.jpg" alt="Image" />` | |
 | `> Blockquote 1`<br/>`>> Blockquote 2` | `<blockquote>Blockquote 1`<br/>`<blockquote>Blockquote 2`<br/>`</blockquote></blockquote>` | |
 
@@ -184,12 +184,12 @@ It supports both Html or Markdown, depending on your choice.
 To enable Markdown, switch the **M⭣** button on.
 Also, do not forget to add "#md on" on top of your worksheet.
 
-<img src="./media/image33.png" style="width:6.69306in;height:0.31528in" />
+<img src="./media/image33.png" style="width:6.69306in;height:0.31528in" alt="Report output toolbar" />
 
 The formatting toolbar includes the following commands:
 
 | Button | Command | Shortcut | Html | Markdown |
-| --- | --- | --- | --- | --- |
+| ------ | ------- | -------- | ---- | -------- |
 | H3 | Heading 3 | Ctrl+3 | `<h3>...</h3>` | `###...` |
 | H4 | Heading 4 | Ctrl+4 | `<h4>...</h4>` | `####...` |
 | H5 | Heading 5 | Ctrl+5 | `<h5>...</h5>` | `#####...` |

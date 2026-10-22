@@ -17,7 +17,6 @@ A few editor defaults are set for `.cpd` files so the language behaves predictab
   Press **Tab** to accept a completion instead.
 - **Tab accepts suggestions** and triggers completion on a partial word.
 
-
 ## Autocomplete
 
 As you type, the completion list offers:
@@ -46,7 +45,7 @@ When the cursor is in a `.cpd` file, these hotkeys wrap the selection in HTML or
 Whether HTML or Markdown is emitted depends on the `commentFormat` setting (`auto` / `html` / `markdown`).
 
 | Keybinding | Effect |
-|------------|--------|
+| ---------- | ------ |
 | **Ctrl+B** | Bold |
 | **Ctrl+I** | Italic |
 | **Ctrl+U** | Underline |
@@ -69,7 +68,7 @@ Turn the whole set off with the `enableFormattingHotkeys` setting if it conflict
 The editor provides IDE-grade navigation across variables, functions, macros, and custom units — including across `#include` files:
 
 | Action | Trigger |
-|--------|---------|
+| ------ | ------- |
 | **Go to Definition** | **Ctrl+Click** or **F12** — jumps to the first assignment |
 | **Find All References** | **Shift+Alt+F12**, or right-click → *Find All References* |
 | **Rename Symbol** | **F2** — renames occurrences in the current document only (not across `#include` files) |

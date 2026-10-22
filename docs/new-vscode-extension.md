@@ -66,7 +66,7 @@ Four preview panels are available — **HTML Preview**, **Unwrapped Preview**, *
 See [Exports → Export variants](new-exports.md#export-variants) for a breakdown of each one.
 
 | Panel | How to open |
-|-------|-------------|
+| ----- | ----------- |
 | **HTML Preview** | Preview button in the editor toolbar, or *CalcpadCE Preview* in the Command Palette |
 | **Unwrapped Preview** | Eye button in the editor toolbar, or *CalcpadCE Preview Unwrapped* |
 | **Input Form** | Pencil button in the editor toolbar, or *CalcpadCE: Toggle #UI Input Mode* |
@@ -114,7 +114,7 @@ Exporting is the same across every CalcpadCE frontend — see **[Exports](new-ex
 The **Export** tab of the panel holds every export, and these are also reachable from the editor and Command Palette:
 
 | Output | How |
-|--------|-----|
+| ------ | --- |
 | **PDF** | **Export CalcpadCE to PDF** button in the editor toolbar, or *Export CalcpadCE to PDF*. Requires a Chromium browser — see [Exports → Browser requirement](new-exports.md#browser-requirement). |
 | **PDF (report)** | **CalcpadCE: Print Report to PDF** — the same export, also a title-bar button on the report and input-form panels |
 | **HTML** | **Save HTML…** on the sidebar's **Export** tab, or *CalcpadCE: Save Source HTML…* |
@@ -146,7 +146,7 @@ If these do not work, restarting VS Code typically fixes it. Because the calcula
 Four VS Code output channels help diagnose problems (open the Output panel and pick from the dropdown):
 
 | Channel | Shows |
-|---------|-------|
+| ------- | ----- |
 | **CalcpadCE Extension** | Extension lifecycle, commands, errors |
 | **CalcpadCE Output HTML** | Rendered HTML in the preview |
 | **CalcpadCE Webview Console** | Console messages from preview panels |
@@ -155,7 +155,7 @@ Four VS Code output channels help diagnose problems (open the Output panel and p
 ## Troubleshooting
 
 | Symptom | Fix |
-|---------|-----|
+| ------- | --- |
 | Preview never renders / "server not ready" | Click refresh icon in the CalcpadCE panel to try restarting a server that crashed or failed to start. Check the **CalcpadCE Server Debug** output channel. |
 | PDF export fails | Verify the file is not locked and a Chromium browser is installed (Chrome/Edge/Chromium). See [Exports → Troubleshooting](new-exports.md#troubleshooting). |
 
