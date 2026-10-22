@@ -14,6 +14,7 @@ import type {
     CalcpadError,
     ConvertResult,
     UiConvertOptions,
+    UiPauseState,
     CpdzDecodeResponse,
     CpdzEncodeResponse,
     PortableBundleResult,
@@ -356,6 +357,8 @@ export class CalcpadApiClient {
                         uiOverrides: ui?.uiOverrides,
                         includeLineAnchors,
                         hideErrorLines: ui?.hideErrorLines,
+                        stepPauses: ui?.stepPauses ?? false,
+                        pauseAfter: ui?.pauseAfter ?? null,
                         write: opts?.write ?? false,
                     }),
                     signal: combineSignals(AbortSignal.timeout(60000), signal),
@@ -366,7 +369,7 @@ export class CalcpadApiClient {
                     return response.arrayBuffer();
                 }
                 const html = await response.text();
-                return { html, errors: parseConvertErrorHeader(response) };
+                return { html, errors: parseConvertErrorHeader(response), pause: parseConvertPauseHeader(response) };
             } catch (error) {
                 this.logError('Convert', error);
                 return null;
@@ -544,6 +547,20 @@ export function parseConvertErrorHeader(response: Response): CalcpadError[] {
         return Array.isArray(parsed) ? parsed : [];
     } catch {
         return [];
+    }
+}
+
+export function parseConvertPauseHeader(response: Response): UiPauseState | undefined {
+    const raw = response.headers.get('X-Calcpad-Pause');
+    if (!raw) return undefined;
+    try {
+        const parsed = JSON.parse(decodeURIComponent(raw));
+        return {
+            next: typeof parsed.next === 'string' ? parsed.next : null,
+            previous: typeof parsed.previous === 'string' ? parsed.previous : null,
+        };
+    } catch {
+        return undefined;
     }
 }
 

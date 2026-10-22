@@ -14,7 +14,6 @@ namespace Calcpad.Core
         private const int MaxHtmlLines = 200000;
         private int _errorCount;
         private int _isVal;
-        private int _startLine;
         private int _currentLine;
         private int _htmlLines;
         private int _decimals;
@@ -23,8 +22,6 @@ namespace Calcpad.Core
         private readonly Stack<bool> _visibilityStack = new();
         private readonly Stack<int> _outputModeStack = new();
         private readonly Stack<MathParser.VariableSubstitutionOptions> _substitutionStack = new();
-        private bool _isPausedByUser;
-        private int _pauseCharCount;
         private bool _isMarkdownOn;
         private MathParser _parser;
         private readonly StringBuilder _sb = new(10000);
@@ -51,7 +48,6 @@ namespace Calcpad.Core
         }
         public string HtmlResult { get; private set; }
         public IReadOnlyList<CalcpadError> Errors => _errorList;
-        public bool IsPaused => _startLine > 0;
         public bool Debug { get; set; }
         public bool ForPrint { get; set; }
         public bool ShowWarnings { get; set; } = true;
@@ -65,7 +61,6 @@ namespace Calcpad.Core
         }
 
         public void Cancel() => _parser?.Cancel();
-        public void Pause() => _isPausedByUser = true;
 
         private string HtmlId => LineAttributes(_currentLine, _parser.Line);
 
@@ -92,6 +87,7 @@ namespace Calcpad.Core
                 lines.Add(len);
 
             Initialize(calculate, lines.Count);
+            InitializePauseSteps(code, lines);
             var lineCount = lines.Count - 1;
             var s = string.Empty;
             var textSpan = s.AsSpan();
@@ -215,13 +211,13 @@ namespace Calcpad.Core
                         }
                         _parser.HasInputFields = false;
                         ParseLine(tokens, keyword);
-                        // If the line has input fields, the line cach is cleared, to allow #input to work
+                        // Lines with input fields are not cached, so new values are re-read
                         if (_parser.HasInputFields)
                             _lineCache[_currentLine] = new(null, keyword);
                     }
                 }
                 FlushMarkdown();
-                if (_currentLine == lineCount && (_calculate || !IsPaused))
+                if (_currentLine == lineCount)
                 {
                     var ifNotClosed = _condition.Id > 0 && !_condition.IsLoop;
                     var loopNotClosed = _loops.Count != 0;
@@ -247,7 +243,7 @@ namespace Calcpad.Core
             finally
             {
                 FlushMarkdown();
-                Finalize(lineCount);
+                FinalizeOutput();
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -362,12 +358,6 @@ namespace Calcpad.Core
 
             bool ParseCondition(ReadOnlySpan<char> s, Keyword keyword)
             {
-
-                if (IsPaused && !_calculate)
-                {
-                    _condition.SetCondition(-1);
-                    return keyword == Keyword.None;
-                }
                 _condition.SetCondition(keyword - Keyword.If);
                 if (IsEnabled())
                 {
@@ -517,47 +507,32 @@ namespace Calcpad.Core
             _errIndex = 0;
             _firstErrIndexByLine = new();
             _errorList = new();
-            if (!_calculate)
-                _startLine = 0;
-
-            if (_startLine == 0)
+            Settings.Math.FormatString = null;
+            _parser = new MathParser(Settings.Math)
             {
-                Settings.Math.FormatString = null;
-                _parser = new MathParser(Settings.Math)
-                {
-                    ShowWarnings = ShowWarnings
-                };
-                _decimals = Settings.Math.Decimals;
-                _lineCache = new LineInfo[lineCount];
-                _sb.Clear();
-                _condition = new();
-                _loops.Clear();
-                _isVal = 0;
-                _outputModeStack.Clear();
-                _substitutionStack.Clear();
-                _previousKeyword = Keyword.None;
-                _isMarkdownOn = false;
-                _parseMode = ParseMode.Cpd;
-                _modeSuppressed = false;
-                _parseModeStack.Clear();
-                _uiVarCounts.Clear();
-                _uiDeclarationIndex.Clear();
-                OpenXmlExpressions.Clear();
-                if (!_hasInheritedPathRoots)
-                    _pathRoots = new PathRoots();
-            }
-            else
-            {
-                if (_lineCache.Length < lineCount)
-                    Array.Resize(ref _lineCache, lineCount);
+                ShowWarnings = ShowWarnings
+            };
+            _decimals = Settings.Math.Decimals;
+            _lineCache = new LineInfo[lineCount];
+            _sb.Clear();
+            _condition = new();
+            _loops.Clear();
+            _isVal = 0;
+            _outputModeStack.Clear();
+            _substitutionStack.Clear();
+            _isMarkdownOn = false;
+            _parseMode = ParseMode.Cpd;
+            _modeSuppressed = false;
+            _parseModeStack.Clear();
+            _uiVarCounts.Clear();
+            _uiDeclarationIndex.Clear();
+            OpenXmlExpressions.Clear();
+            if (!_hasInheritedPathRoots)
+                _pathRoots = new PathRoots();
 
-                var n = _sb.Length - _pauseCharCount;
-                if (n > 0)
-                    _sb.Remove(_pauseCharCount, n);
-            }
             _parser.IsUs = Settings.IsUs;
             _parser.IsEnabled = _calculate;
-            _currentLine = _startLine - 1;
+            _currentLine = -1;
             _isVisible = true;
             _visibilityStack.Clear();
             _mdBuffer.Clear();
@@ -565,20 +540,17 @@ namespace Calcpad.Core
             ResetUiState();
         }
 
-        private void Finalize(int lineCount)
+        private void FinalizeOutput()
         {
-            if (_currentLine == lineCount && _calculate)
-                _startLine = 0;
-
-            if (_startLine > 0)
-                _sb.Append(Messages.Paused_Press_F5_to_continue);
+            if (NextPauseKey is not null)
+                _sb.Append(Messages.Paused_Click_Next_to_continue);
 
             if (Debug && _errors.Count != 0)
                 AppendErrors();
 
             HtmlResult = _sb.ToString();
 
-            if (_calculate && _startLine == 0)
+            if (_calculate)
             {
                 _parser.ClearCache();
                 _parser = null;

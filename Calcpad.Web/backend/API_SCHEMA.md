@@ -104,6 +104,11 @@ interface CalcpadRequest {
                                 //   input mode has no source editor for it to point at. Defaults
                                 //   to enableUi; the report pane shown beside the form overrides
                                 //   it to true even though enableUi is false there.
+  stepPauses?: boolean;         // Stop the input form at the first #pause after pauseAfter and
+                                //   return X-Calcpad-Pause (default: false). Requires enableUi;
+                                //   every other render runs past #pause.
+  pauseAfter?: string | null;   // Key of the last #pause the user moved past, as returned in
+                                //   X-Calcpad-Pause. null or "start" stops at the first one.
 
   // Whether this request may run #write/#append. False by default, so a preview refresh does
   // not rewrite the document's output on every keystroke. The front ends resolve their
@@ -120,6 +125,8 @@ The four renderings the front ends expose map onto these as:
 | Preview | `false` | `false` | — | on screen: default; export: `false` | default (`false`) |
 | Report | `true` | `false` | yes | on screen: `true`; export: `false` | default, unless shown beside input form: `true` |
 | Input form | `false` | `true` | yes | export: `false` | default (`true`) |
+
+The on-screen input form also sets `stepPauses: true`; its export does not, so the exported form is complete.
 | Unwrapped | — | — | — | n/a (`?unwrap=true`) | n/a |
 
 **Response:** HTML content (`text/html`)
@@ -135,7 +142,17 @@ Array<{
 }>
 ```
 
-The header is listed in the CORS policy's exposed headers, so a browser client can read it.
+When `stepPauses` is in effect, an `X-Calcpad-Pause` header reports where the form stopped, URL-encoded JSON of:
+
+```typescript
+{
+  next: string | null;      // pauseAfter for the next step; null when the form reached the end
+  previous: string | null;  // pauseAfter for the previous step: "start" goes back to the first
+                            //   step; null when already on it
+}
+```
+
+Both headers are listed in the CORS policy's exposed headers, so a browser client can read them.
 
 Every local `<img src>` comes back with its `{project}`/`{library}`/`{user}` token and any environment variable already expanded to an absolute forward-slash path, resolved against the roots declared anywhere in the `#include` chain. A source with no token is returned as authored, so a relative one still needs joining against `sourceFilePath`'s folder — the only path work left to a client that has to read the file off disk (to base64-inline it for a sandboxed preview, say). An undeclared root is reported as a normal render error and the source is left as written.
 

@@ -61,7 +61,7 @@ namespace Calcpad.Server.Services
                     policy.SetIsOriginAllowed(IsAllowedOrigin)
                           .AllowAnyMethod()
                           .AllowAnyHeader()
-                          .WithExposedHeaders("X-Calcpad-Errors");
+                          .WithExposedHeaders("X-Calcpad-Errors", "X-Calcpad-Pause");
                 });
             });
 

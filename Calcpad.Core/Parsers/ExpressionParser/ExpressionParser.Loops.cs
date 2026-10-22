@@ -12,6 +12,7 @@ namespace Calcpad.Core
             protected readonly int _startLine;
             protected int _iteration;
             internal int Id { get; }
+            internal int StartLine => _startLine;
             internal int Iteration => _iteration;
             internal int InitialCount { get; }
             internal bool IsFirstPass => _iteration == InitialCount;

@@ -312,6 +312,16 @@ export interface CalcpadError {
 export interface ConvertResult {
     html: string;
     errors: CalcpadError[];
+    /** Present when the render stepped `#pause` (returned via the X-Calcpad-Pause header). */
+    pause?: UiPauseState;
+}
+
+/** Where a stepped `#UI` form stopped. Keys are opaque; send one back as `pauseAfter`. */
+export interface UiPauseState {
+    /** `pauseAfter` that shows the next step, null when the form reached the end. */
+    next: string | null;
+    /** `pauseAfter` that shows the previous step (`"start"` for the first), null when already on the first. */
+    previous: string | null;
 }
 
 export interface CpdzDecodeResponse {
@@ -376,4 +386,8 @@ export interface UiConvertOptions {
      * mode has no source editor for it to point at. Defaults to `enableUi`.
      */
     hideErrorLines?: boolean;
+    /** Stop the form at the first `#pause` after `pauseAfter`. Only the interactive form steps. */
+    stepPauses?: boolean;
+    /** Key of the last `#pause` moved past: null or `"start"` for the first step. */
+    pauseAfter?: string | null;
 }
